@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local AI Scanner</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 40px; text-align: center; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        button { background: #1877f2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; width: 100%; }
+        button:hover { background: #165ebb; }
+        pre { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; overflow-x: auto; }
+        textarea { width: 95%; margin-top: 15px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: inherit; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📇 Local Business Card Scanner</h1>
+    
+    <form id="uploadForm">
+        {% csrf_token %}
+        <input type="file" id="cardImage" accept="image/*" required>
+        <br>
+        <textarea id="manualNote" placeholder="Add a custom note (e.g., Met at the Indore tech conference...)" rows="3"></textarea>
+        <br>
+        <button type="submit" id="scanBtn">Scan & Save Card</button>
+    </form>
+
+    <div id="resultBox" style="display: none;">
+        <h3>AI Extraction Result:</h3>
+        <pre id="jsonResult"></pre>
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('scanBtn');
+    btn.innerText = "Scanning... Please wait";
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('image', document.getElementById('cardImage').files[0]);
+    formData.append('manual_note', document.getElementById('manualNote').value);
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    try {
+        const response = await fetch('/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken } 
+        });
+
+        const data = await response.json();
+        
+        document.getElementById('resultBox').style.display = 'block';
+        document.getElementById('jsonResult').innerText = JSON.stringify(data, null, 2);
+        document.getElementById('manualNote').value = '';
+        document.getElementById('cardImage').value = '';
+    } catch (error) {
+        alert("Error scanning card. Check the terminal.");
+    } finally {
+        btn.innerText = "Scan & Save Card";
+        btn.disabled = false;
+    }
+};
+</script>
+
+</body>
+</html>

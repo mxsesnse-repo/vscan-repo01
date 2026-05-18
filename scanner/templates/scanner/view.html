@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Card Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 40px; }
+        .dashboard { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #1877f2; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; color: #666; font-size: 14px; text-transform: uppercase; }
+        tr:hover { background: #f1f4ff; }
+        .card-img { max-width: 100px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <h1>🗂 Saved Business Cards</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Company</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Manual Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for card in cards %}
+            <tr>
+                <td>
+                    {% if card.card_image %}
+                    <img src="{{ card.card_image.url }}" class="card-img">
+                    {% endif %}
+                </td>
+                <td><strong>{{ card.first_name }} {{ card.last_name }}</strong></td>
+                <td>{{ card.company_name|default:"-" }}</td>
+                <td>{{ card.email|default:"-" }}</td>
+                <td>{{ card.phone_number|default:"-" }}</td>
+                <td><em>{{ card.manual_note|default:"-" }}</em></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No cards scanned yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
