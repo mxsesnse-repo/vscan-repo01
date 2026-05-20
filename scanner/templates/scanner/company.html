@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company.name }} - Corporate Network</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="fw-bold text-dark mb-0">🏢 {{ company.name }}</h1>
+                <p class="text-muted mt-2">Corporate Network Database • {{ employee_count }} Known Contacts</p>
+            </div>
+            <a href="/dashboard/" class="btn btn-outline-primary">Back to Dashboard</a>
+        </div>
+
+        <div class="row g-4">
+            {% for employee in employees %}
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0 border-top border-4 border-success">
+                    <div class="card-body p-4">
+                        <h4 class="card-title fw-bold m-0">{{ employee.first_name }} {{ employee.last_name }}</h4>
+                        <hr>
+                        <div class="mb-2 small text-muted"><strong>Email:</strong> {{ employee.email|default:"N/A" }}</div>
+                        <div class="mb-3 small text-muted"><strong>Phone:</strong> {{ employee.phone_number|default:"N/A" }}</div>
+                        
+                        {% if employee.manual_note %}
+                        <div class="p-3 bg-light rounded small text-secondary">
+                            <strong>Notes:</strong> {{ employee.manual_note }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0">
+                        <a href="/edit/{{ employee.id }}/" class="btn btn-sm btn-outline-primary w-100">Edit Contact</a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">No approved contacts found for this company yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

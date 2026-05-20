@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,7 +51,15 @@
                             <span class="badge bg-danger">Duplicate Detected</span>
                             {% endif %}
                         </div>
-                        <p class="text-primary small mb-3">{{ card.company_name|default:"Independent" }}</p>
+                        
+                        {% if card.company_link %}
+                            <a href="/company/{{ card.company_link.id }}/" class="text-decoration-none">
+                                <p class="text-primary small mb-3 fw-bold">🏢 {{ card.company_name }} (View Network)</p>
+                            </a>
+                        {% else %}
+                            <p class="text-primary small mb-3">{{ card.company_name|default:"Independent" }}</p>
+                        {% endif %}
+
                         <div class="mb-2 small text-muted"><strong>Email:</strong> {{ card.email|default:"N/A" }}</div>
                         <div class="mb-3 small text-muted"><strong>Phone:</strong> {{ card.phone_number|default:"N/A" }}</div>
                     </div>
@@ -83,7 +92,15 @@
                     {% endif %}
                     <div class="card-body p-4">
                         <h5 class="card-title fw-bold m-0">{{ card.first_name }} {{ card.last_name }}</h5>
-                        <p class="text-primary small mb-3">{{ card.company_name|default:"Independent" }}</p>
+                        
+                        {% if card.company_link %}
+                            <a href="/company/{{ card.company_link.id }}/" class="text-decoration-none">
+                                <p class="text-primary small mb-3 fw-bold">🏢 {{ card.company_name }} (View Network)</p>
+                            </a>
+                        {% else %}
+                            <p class="text-primary small mb-3">{{ card.company_name|default:"Independent" }}</p>
+                        {% endif %}
+
                         <div class="mb-2 small text-muted"><strong>Email:</strong> {{ card.email|default:"N/A" }}</div>
                         <div class="mb-3 small text-muted"><strong>Phone:</strong> {{ card.phone_number|default:"N/A" }}</div>
                     </div>
@@ -111,3 +128,4 @@
     </div>
 </body>
 </html>
+

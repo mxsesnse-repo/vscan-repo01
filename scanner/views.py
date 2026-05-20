@@ -5,7 +5,7 @@ import requests
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from .models import BusinessCard
+from .models import BusinessCard, Company
 
 def scan_card(request):
     if not request.user.is_authenticated:
@@ -24,6 +24,7 @@ def scan_card(request):
                 "prompt": (
                     "Analyze this business card image. Extract contact details. "
                     "Return ONLY a raw JSON object with keys: 'name', 'email', 'phone', 'company'. "
+                    "For the company key, extract ONLY the company name and completely ignore any job titles (like VP, CEO, etc.). "
                     "Do not use markdown backticks, explanations, or introductory text. "
                     "If a value is missing, use null."
                 ),
@@ -53,8 +54,8 @@ def scan_card(request):
             
             email_val = parsed_data.get('email')
             phone_val = parsed_data.get('phone')
+            extracted_company = parsed_data.get('company')
             
-            # DUPLICATE DETECTION LOGIC
             is_dup = False
             if email_val:
                 if BusinessCard.objects.filter(user=request.user, email=email_val).exists():
@@ -62,17 +63,25 @@ def scan_card(request):
             if phone_val and not is_dup:
                 if BusinessCard.objects.filter(user=request.user, phone_number=phone_val).exists():
                     is_dup = True
+
+            linked_company_obj = None
+            if extracted_company:
+                linked_company_obj, created = Company.objects.get_or_create(
+                    user=request.user,
+                    name=extracted_company
+                )
             
             BusinessCard.objects.create(
                 user=request.user,
                 first_name=f_name,
                 last_name=l_name,
-                company_name=parsed_data.get('company'),
+                company_name=extracted_company,
+                company_link=linked_company_obj,
                 email=email_val,
                 phone_number=phone_val,
                 manual_note=user_note,
                 card_image=image_file,
-                is_approved=False, # Automatically sent to Queue
+                is_approved=False,
                 is_duplicate=is_dup
             )
             return JsonResponse(parsed_data)
@@ -84,11 +93,9 @@ def scan_card(request):
 
 @login_required
 def dashboard(request):
-    # Split cards into pending and approved queues
     approved_cards = BusinessCard.objects.filter(user=request.user, is_approved=True).order_by('-scanned_at')
     pending_cards = BusinessCard.objects.filter(user=request.user, is_approved=False).order_by('-scanned_at')
     
-    # Analytics only calculate using APPROVED cards
     total_cards = approved_cards.count()
     unique_companies = approved_cards.values('company_name').distinct().exclude(company_name__isnull=True).exclude(company_name='').count()
     
@@ -105,7 +112,7 @@ def approve_card(request, card_id):
     if request.method == 'POST':
         card = get_object_or_404(BusinessCard, id=card_id, user=request.user)
         card.is_approved = True
-        card.is_duplicate = False # Clear warning once approved
+        card.is_duplicate = False
         card.save()
     return redirect('/dashboard/')
 
@@ -148,6 +155,7 @@ def chat_view(request):
             return JsonResponse({'error': str(e)}, status=500)
             
     return render(request, 'scanner/chat.html')
+
 @login_required
 def delete_card(request, card_id):
     if request.method == 'POST':
@@ -161,6 +169,19 @@ def copy_card(request, card_id):
         card = get_object_or_404(BusinessCard, id=card_id, user=request.user)
         card.pk = None 
         card.manual_note = f"[COPIED] {card.manual_note}" if card.manual_note else "[COPIED RECORD]"
-        card.is_approved = False # Send copies to queue for review
+        card.is_approved = False
         card.save()
     return redirect('/dashboard/')
+@login_required
+def company_network(request, company_id):
+    # Find the specific company
+    company = get_object_or_404(Company, id=company_id, user=request.user)
+    
+    # Grab all approved employees linked to this company
+    employees = company.employees.filter(is_approved=True).order_by('-scanned_at')
+    
+    return render(request, 'scanner/company.html', {
+        'company': company,
+        'employees': employees,
+        'employee_count': employees.count()
+    })

@@ -9,4 +9,5 @@ urlpatterns = [
     path('delete/<int:card_id>/', views.delete_card, name='delete_card'),
     path('copy/<int:card_id>/', views.copy_card, name='copy_card'),
     path('approve/<int:card_id>/', views.approve_card, name='approve_card'),
+    path('company/<int:company_id>/', views.company_network, name='company_network'),
 ]
