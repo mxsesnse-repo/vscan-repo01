@@ -2,9 +2,12 @@ import json
 import base64
 import re
 import requests
+import csv
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login, logout
 from .models import BusinessCard, Company
 
 def scan_card(request):
@@ -172,12 +175,10 @@ def copy_card(request, card_id):
         card.is_approved = False
         card.save()
     return redirect('/dashboard/')
+
 @login_required
 def company_network(request, company_id):
-    # Find the specific company
     company = get_object_or_404(Company, id=company_id, user=request.user)
-    
-    # Grab all approved employees linked to this company
     employees = company.employees.filter(is_approved=True).order_by('-scanned_at')
     
     return render(request, 'scanner/company.html', {
@@ -185,3 +186,40 @@ def company_network(request, company_id):
         'employees': employees,
         'employee_count': employees.count()
     })
+
+@login_required
+def export_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="my_contacts.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['First Name', 'Last Name', 'Company', 'Email', 'Phone', 'Notes', 'Scanned Date'])
+    
+    cards = BusinessCard.objects.filter(user=request.user, is_approved=True).order_by('-scanned_at')
+    for card in cards:
+        writer.writerow([
+            card.first_name,
+            card.last_name,
+            card.company_name,
+            card.email,
+            card.phone_number,
+            card.manual_note,
+            card.scanned_at.strftime("%Y-%m-%d")
+        ])
+    return response
+
+# --- NEW AUTH VIEWS ---
+def register_user(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user) # Automatically log them in after signing up
+            return redirect('/dashboard/')
+    else:
+        form = UserCreationForm()
+    return render(request, 'scanner/register.html', {'form': form})
+
+def logout_user(request):
+    logout(request)
+    return redirect('/login/')

@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
@@ -10,4 +11,10 @@ urlpatterns = [
     path('copy/<int:card_id>/', views.copy_card, name='copy_card'),
     path('approve/<int:card_id>/', views.approve_card, name='approve_card'),
     path('company/<int:company_id>/', views.company_network, name='company_network'),
+    path('export/', views.export_csv, name='export_csv'),
+    
+    # NEW AUTH ROUTES
+    path('register/', views.register_user, name='register'),
+    path('logout/', views.logout_user, name='logout'),
+    path('login/', auth_views.LoginView.as_view(template_name='scanner/login.html'), name='login'),
 ]
