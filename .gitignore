@@ -1,5 +1,38 @@
+# --- Sensitive Information ---
 .env
+*.env
+secret_key.txt
+
+# --- Databases ---
 db.sqlite3
-media/
+*.sqlite3
+
+# --- Python / Django ---
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+
+# --- User Content & Media ---
+media/
+static/
+
+# --- IDE & OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

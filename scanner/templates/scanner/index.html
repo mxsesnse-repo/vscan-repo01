@@ -11,6 +11,8 @@
         button:hover { background: #165ebb; }
         pre { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; overflow-x: auto; }
         textarea { width: 95%; margin-top: 15px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: inherit; }
+        .dashboard-link { display: block; background: #28a745; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; margin-top: 15px; width: 93%; margin-left: auto; margin-right: auto; }
+        .dashboard-link:hover { background: #218838; }
     </style>
 </head>
 <body>
@@ -30,6 +32,10 @@
     <div id="resultBox" style="display: none;">
         <h3>AI Extraction Result:</h3>
         <pre id="jsonResult"></pre>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <a href="/dashboard/" class="dashboard-link">Go to Dashboard ➔</a>
     </div>
 </div>
 

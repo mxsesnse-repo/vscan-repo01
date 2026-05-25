@@ -42,6 +42,43 @@
                                     <label class="form-label text-muted small fw-bold">Manual Notes</label>
                                     <textarea class="form-control" name="manual_note" rows="3">{{ card.manual_note|default:'' }}</textarea>
                                 </div>
+                                
+                                <div class="col-12 mt-3">
+                                    <label class="form-label text-muted small fw-bold">Domain Tags (Hold Ctrl/Cmd to select multiple)</label>
+                                    <select name="domains" class="form-select" multiple style="height: 100px;">
+                                        {% for domain in domains %}
+                                            <option value="{{ domain.id }}" 
+                                                {% if domain in card.domains.all %}selected{% endif %}>
+                                                {{ domain.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">Categorize this contact for the Knowledge Graph.</div>
+                                </div>
+                                
+                                <hr class="my-4">
+                                <h5 class="fw-bold text-dark mb-3">💼 Opportunity Tracking</h5>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-5">
+                                        <label class="form-label text-muted small fw-bold">Deal Name</label>
+                                        <input type="text" class="form-control" name="opp_title" placeholder="e.g., Q3 Tech Pilot" value="{{ opportunity.title|default:'' }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted small fw-bold">Pipeline Stage</label>
+                                        <select name="opp_stage" class="form-select">
+                                            <option value="lead" {% if opportunity.stage == 'lead' %}selected{% endif %}>Lead</option>
+                                            <option value="pitching" {% if opportunity.stage == 'pitching' %}selected{% endif %}>Pitching</option>
+                                            <option value="negotiation" {% if opportunity.stage == 'negotiation' %}selected{% endif %}>Negotiation</option>
+                                            <option value="closed_won" {% if opportunity.stage == 'closed_won' %}selected{% endif %}>Closed Won</option>
+                                            <option value="closed_lost" {% if opportunity.stage == 'closed_lost' %}selected{% endif %}>Closed Lost</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label text-muted small fw-bold">Value (₹/$)</label>
+                                        <input type="number" step="0.01" class="form-control" name="opp_value" placeholder="50000" value="{{ opportunity.value|default:'' }}">
+                                    </div>
+                                </div>
+                                
                             </div>
                             <div class="mt-4 d-flex gap-2">
                                 <button type="submit" class="btn btn-primary px-4">Save Changes</button>

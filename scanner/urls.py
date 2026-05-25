@@ -17,4 +17,5 @@ urlpatterns = [
     path('register/', views.register_user, name='register'),
     path('logout/', views.logout_user, name='logout'),
     path('login/', auth_views.LoginView.as_view(template_name='scanner/login.html'), name='login'),
+    path('domain/<int:domain_id>/', views.domain_network, name='domain_network'),
 ]

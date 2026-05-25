@@ -1,6 +1,5 @@
 import json
 import base64
-import re
 import requests
 import csv
 from django.shortcuts import render, redirect, get_object_or_404
@@ -8,7 +7,9 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
-from .models import BusinessCard, Company
+from .models import BusinessCard, Company, Event, Task, Domain, Opportunity
+from .graph_services import sync_card_to_graph, get_contacts_at_company_via_graph, get_contacts_by_domain_via_graph
+from .tasks import process_business_card, index_contact_for_rag
 
 def scan_card(request):
     if not request.user.is_authenticated:
@@ -19,75 +20,17 @@ def scan_card(request):
             image_file = request.FILES['image']
             user_note = request.POST.get('manual_note', '')
             
-            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-            
-            url = "http://localhost:11434/api/generate"
-            payload = {
-                "model": "llama3.2-vision",
-                "prompt": (
-                    "Analyze this business card image. Extract contact details. "
-                    "Return ONLY a raw JSON object with keys: 'name', 'email', 'phone', 'company'. "
-                    "For the company key, extract ONLY the company name and completely ignore any job titles (like VP, CEO, etc.). "
-                    "Do not use markdown backticks, explanations, or introductory text. "
-                    "If a value is missing, use null."
-                ),
-                "stream": False,
-                "images": [encoded_image]
-            }
-            
-            response = requests.post(url, json=payload)
-            result = response.json()
-            ai_text = result.get('response', '').strip()
-            
-            json_match = re.search(r'\{.*\}', ai_text, re.DOTALL)
-            if json_match:
-                clean_text = json_match.group(0)
-            else:
-                clean_text = ai_text.replace('```json', '').replace('```', '').strip()
-            
-            try:
-                parsed_data = json.loads(clean_text)
-            except Exception:
-                parsed_data = {"name": "Unparsed", "company": None, "email": None, "phone": None}
-                
-            full_name = parsed_data.get('name', '') or ''
-            name_parts = full_name.split(' ', 1)
-            f_name = name_parts[0] if len(name_parts) > 0 else ''
-            l_name = name_parts[1] if len(name_parts) > 1 else ''
-            
-            email_val = parsed_data.get('email')
-            phone_val = parsed_data.get('phone')
-            extracted_company = parsed_data.get('company')
-            
-            is_dup = False
-            if email_val:
-                if BusinessCard.objects.filter(user=request.user, email=email_val).exists():
-                    is_dup = True
-            if phone_val and not is_dup:
-                if BusinessCard.objects.filter(user=request.user, phone_number=phone_val).exists():
-                    is_dup = True
-
-            linked_company_obj = None
-            if extracted_company:
-                linked_company_obj, created = Company.objects.get_or_create(
-                    user=request.user,
-                    name=extracted_company
-                )
-            
-            BusinessCard.objects.create(
+            new_card = BusinessCard.objects.create(
                 user=request.user,
-                first_name=f_name,
-                last_name=l_name,
-                company_name=extracted_company,
-                company_link=linked_company_obj,
-                email=email_val,
-                phone_number=phone_val,
+                first_name="Processing...",
+                last_name="AI is scanning",
                 manual_note=user_note,
                 card_image=image_file,
-                is_approved=False,
-                is_duplicate=is_dup
+                is_approved=False
             )
-            return JsonResponse(parsed_data)
+            
+            process_business_card.delay(new_card.id)
+            return JsonResponse({'message': 'Card uploaded successfully! AI is processing in the background.'})
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -96,17 +39,27 @@ def scan_card(request):
 
 @login_required
 def dashboard(request):
-    approved_cards = BusinessCard.objects.filter(user=request.user, is_approved=True).order_by('-scanned_at')
-    pending_cards = BusinessCard.objects.filter(user=request.user, is_approved=False).order_by('-scanned_at')
-    
-    total_cards = approved_cards.count()
-    unique_companies = approved_cards.values('company_name').distinct().exclude(company_name__isnull=True).exclude(company_name='').count()
-    
+    cards = BusinessCard.objects.filter(user=request.user, is_approved=True).order_by('-scanned_at')
+    pending_cards = BusinessCard.objects.filter(user=request.user, is_approved=False)
+    companies = Company.objects.filter(user=request.user).order_by('name')
+    tasks = Task.objects.filter(user=request.user).order_by('due_date')
+    domains = Domain.objects.filter(user=request.user).order_by('name')
+    opportunities = Opportunity.objects.filter(user=request.user).select_related('contact')
+
+    total_contacts = cards.count()
+    total_companies = companies.count()
+    pending_tasks = tasks.filter(is_completed=False).count()
+
     context = {
-        'approved_cards': approved_cards,
+        'cards': cards,
+        'companies': companies,
+        'tasks': tasks,
         'pending_cards': pending_cards,
-        'total_cards': total_cards,
-        'unique_companies': unique_companies,
+        'total_contacts': total_contacts,
+        'total_companies': total_companies,
+        'pending_tasks': pending_tasks,
+        'domains': domains,
+        'opportunities': opportunities
     }
     return render(request, 'scanner/view.html', context)
 
@@ -117,11 +70,18 @@ def approve_card(request, card_id):
         card.is_approved = True
         card.is_duplicate = False
         card.save()
+        
+        sync_card_to_graph(card)
+        index_contact_for_rag.delay(card.id)
+        
     return redirect('/dashboard/')
 
 @login_required
 def edit_card(request, card_id):
     card = get_object_or_404(BusinessCard, id=card_id, user=request.user)
+    domains = Domain.objects.filter(user=request.user)
+    opportunity = Opportunity.objects.filter(contact=card).first()
+    
     if request.method == 'POST':
         card.first_name = request.POST.get('first_name', '')
         card.last_name = request.POST.get('last_name', '')
@@ -130,32 +90,68 @@ def edit_card(request, card_id):
         card.phone_number = request.POST.get('phone_number', '')
         card.manual_note = request.POST.get('manual_note', '')
         card.save()
+        
+        selected_domain_ids = request.POST.getlist('domains')
+        card.domains.set(selected_domain_ids)
+        
+        opp_title = request.POST.get('opp_title')
+        opp_stage = request.POST.get('opp_stage', 'lead')
+        opp_value = request.POST.get('opp_value')
+
+        if opp_title: 
+            if opportunity:
+                opportunity.title = opp_title
+                opportunity.stage = opp_stage
+                opportunity.value = opp_value if opp_value else None
+                opportunity.save()
+            else:
+                Opportunity.objects.create(
+                    user=request.user,
+                    contact=card,
+                    title=opp_title,
+                    stage=opp_stage,
+                    value=opp_value if opp_value else None
+                )
+        
+        sync_card_to_graph(card)
         return redirect('/dashboard/')
-    return render(request, 'scanner/edit.html', {'card': card})
+        
+    return render(request, 'scanner/edit.html', {
+        'card': card, 
+        'domains': domains,
+        'opportunity': opportunity
+    })
 
 @login_required
 def chat_view(request):
     if request.method == 'POST':
         user_message = request.POST.get('message', '')
-        user_cards = BusinessCard.objects.filter(user=request.user, is_approved=True)
+        user_cards = BusinessCard.objects.filter(user=request.user, is_approved=True).prefetch_related('opportunities')
         
-        context_data = "Saved Contacts:\n"
+        context_data = "Saved Contacts & Deals:\n"
         for card in user_cards:
-            context_data += f"- Name: {card.first_name} {card.last_name}, Company: {card.company_name}, Email: {card.email}, Phone: {card.phone_number}, Notes: {card.manual_note}\n"
+            context_data += f"- Name: {card.first_name} {card.last_name}, Company: {card.company_name}\n"
+            # Add opportunity/deal info to the prompt context
+            for opp in card.opportunities.all():
+                context_data += f"  * Deal: {opp.title}, Stage: {opp.get_stage_display()}, Value: {opp.value}\n"
+            context_data += f"  * Contact Info: Email: {card.email}, Phone: {card.phone_number}, Notes: {card.manual_note}\n"
             
         prompt = (
-            "You are a friendly, professional CRM assistant. Answer the user's question using ONLY the provided contact data. "
-            "Write in complete, natural sentences. If asked about a person, provide a helpful summary of their company, contact info, and notes. "
-            "If the information is not in the data, say you don't know.\n\n"
+            "You are a professional CRM assistant. Use ONLY the provided contact and deal data to answer the user. "
+            "If the user asks about a deal or contact, summarize their company, deal stage, and value.\n\n"
             f"Data:\n{context_data}\n\n"
             f"Question: {user_message}"
         )
         
         try:
-            response = requests.post("http://localhost:11434/api/generate", json={"model": "llama3.2-vision", "prompt": prompt, "stream": False})
+            response = requests.post(
+                "http://localhost:11434/api/generate", 
+                json={"model": "llama3.2", "prompt": prompt, "stream": False},
+                timeout=60
+            )
             return JsonResponse({'answer': response.json().get('response', 'Error.')})
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'answer': f"Connection Error: {str(e)}"})
             
     return render(request, 'scanner/chat.html')
 
@@ -179,12 +175,23 @@ def copy_card(request, card_id):
 @login_required
 def company_network(request, company_id):
     company = get_object_or_404(Company, id=company_id, user=request.user)
-    employees = company.employees.filter(is_approved=True).order_by('-scanned_at')
+    employees = get_contacts_at_company_via_graph(company.id)
     
     return render(request, 'scanner/company.html', {
         'company': company,
         'employees': employees,
-        'employee_count': employees.count()
+        'employee_count': len(employees)
+    })
+
+@login_required
+def domain_network(request, domain_id):
+    domain = get_object_or_404(Domain, id=domain_id, user=request.user)
+    contacts = get_contacts_by_domain_via_graph(domain.id)
+    
+    return render(request, 'scanner/domain.html', {
+        'domain': domain,
+        'contacts': contacts,
+        'contact_count': len(contacts)
     })
 
 @login_required
@@ -208,13 +215,12 @@ def export_csv(request):
         ])
     return response
 
-# --- NEW AUTH VIEWS ---
 def register_user(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user) # Automatically log them in after signing up
+            login(request, user)
             return redirect('/dashboard/')
     else:
         form = UserCreationForm()
