@@ -8,7 +8,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
 from django.utils import timezone
-from .models import BusinessCard, Company, Event, Task, Domain, Opportunity
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+
+from .models import BusinessCard, Company, Event, Task, Domain, Opportunity, KnowledgeEntity, KnowledgeRelationship
 from .graph_services import sync_card_to_graph, get_contacts_at_company_via_graph, get_contacts_by_domain_via_graph
 from .tasks import process_business_card, index_contact_for_rag
 from .rag_services import embed_text
@@ -53,6 +56,29 @@ def dashboard(request):
     total_companies = companies.count()
     pending_tasks = tasks.filter(is_completed=False).count()
 
+    entities = KnowledgeEntity.objects.filter(created_by=request.user)
+    relationships = KnowledgeRelationship.objects.filter(created_by=request.user)
+
+    nodes_list = []
+    for entity in entities:
+        nodes_list.append({
+            "id": entity.id,
+            "label": entity.display_name,
+            "group": entity.entity_type 
+        })
+
+    edges_list = []
+    for rel in relationships:
+        pretty_label = rel.relationship_type.replace("_", " ").title() 
+        edges_list.append({
+            "from": rel.source_entity_id,
+            "to": rel.target_entity_id,
+            "label": pretty_label
+        })
+
+    graph_nodes_json = json.dumps(nodes_list)
+    graph_edges_json = json.dumps(edges_list)
+
     context = {
         'cards': cards,
         'companies': companies,
@@ -62,7 +88,9 @@ def dashboard(request):
         'total_companies': total_companies,
         'pending_tasks': pending_tasks,
         'domains': domains,
-        'opportunities': opportunities
+        'opportunities': opportunities,
+        'graph_nodes_json': graph_nodes_json, 
+        'graph_edges_json': graph_edges_json  
     }
     return render(request, 'scanner/view.html', context)
 
@@ -157,7 +185,6 @@ def chat_view(request):
     if request.method == 'POST':
         user_message = request.POST.get('message', '')
 
-        # --- SQL search: exact keyword match across approved contacts ---
         sql_cards = BusinessCard.objects.filter(
             user=request.user, is_approved=True
         ).prefetch_related('opportunities', 'domains').select_related('company_link', 'met_at_event')
@@ -173,7 +200,6 @@ def chat_view(request):
                 line += f" | Deal: {opp.title}, Stage: {opp.get_stage_display()}, Value: {opp.value}"
             sql_lines.append(line)
 
-        # --- Vector search: semantic similarity over RAG chunks ---
         vector_lines = []
         try:
             query_embedding = embed_text(user_message)
@@ -189,7 +215,6 @@ def chat_view(request):
         except Exception:
             pass
 
-        # --- Build combined context ---
         context_parts = []
         if sql_lines:
             context_parts.append("CRM Contacts:\n" + "\n".join(sql_lines))
@@ -294,3 +319,43 @@ def register_user(request):
 def logout_user(request):
     logout(request)
     return redirect('/login/')
+
+@login_required
+def add_domain(request):
+    if request.method == 'POST':
+        domain_name = request.POST.get('domain_name', '').strip()
+        if domain_name:
+            Domain.objects.get_or_create(user=request.user, name=domain_name)
+    return redirect('/dashboard/')
+
+@login_required
+def settings_view(request):
+    domains = Domain.objects.filter(user=request.user).order_by('name')
+    password_form = PasswordChangeForm(request.user)
+
+    if request.method == 'POST':
+        if 'update_profile' in request.POST:
+            request.user.first_name = request.POST.get('first_name', '')
+            request.user.last_name = request.POST.get('last_name', '')
+            request.user.email = request.POST.get('email', '')
+            request.user.save()
+            return redirect('/settings/')
+            
+        elif 'change_password' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                return redirect('/settings/')
+
+    return render(request, 'scanner/settings.html', {
+        'domains': domains,
+        'password_form': password_form
+    })
+
+@login_required
+def delete_domain(request, domain_id):
+    if request.method == 'POST':
+        domain = get_object_or_404(Domain, id=domain_id, user=request.user)
+        domain.delete()
+    return redirect('/settings/')

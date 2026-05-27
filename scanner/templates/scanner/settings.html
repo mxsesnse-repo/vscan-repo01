@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Business Cards</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <h1 class="fw-bold text-dark">⚙️ Settings</h1>
+            <div>
+                <a href="/dashboard/" class="btn btn-outline-primary me-2">Back to Dashboard</a>
+                <a href="/logout/" class="btn btn-outline-danger">Log Out</a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-dark">Profile Information</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">USERNAME (Read Only)</label>
+                                <input type="text" class="form-control bg-light" value="{{ request.user.username }}" readonly>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted small fw-bold">FIRST NAME</label>
+                                    <input type="text" name="first_name" class="form-control" value="{{ request.user.first_name }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted small fw-bold">LAST NAME</label>
+                                    <input type="text" name="last_name" class="form-control" value="{{ request.user.last_name }}">
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold">EMAIL ADDRESS</label>
+                                <input type="email" name="email" class="form-control" value="{{ request.user.email }}">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold">Save Profile</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-dark">Change Password</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="change_password" value="1">
+                            
+                            {% for field in password_form %}
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-bold">{{ field.label|upper }}</label>
+                                    <input type="{{ field.field.widget.input_type }}" name="{{ field.html_name }}" class="form-control" required>
+                                    {% if field.errors %}
+                                        <small class="text-danger">{{ field.errors.0 }}</small>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                            
+                            <button type="submit" class="btn btn-warning w-100 fw-bold mt-2">Update Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-dark">Manage Domain Tags</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for domain in domains %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
+                                    <span class="fw-bold text-dark">🏷️ {{ domain.name }}</span>
+                                    <form method="POST" action="/settings/delete-domain/{{ domain.id }}/" class="m-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this domain tag?');">Delete</button>
+                                    </form>
+                                </li>
+                            {% empty %}
+                                <li class="list-group-item text-center py-5 text-muted">No custom domains added yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

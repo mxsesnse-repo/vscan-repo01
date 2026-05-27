@@ -13,9 +13,11 @@ urlpatterns = [
     path('company/<int:company_id>/', views.company_network, name='company_network'),
     path('export/', views.export_csv, name='export_csv'),
     
-    # NEW AUTH ROUTES
     path('register/', views.register_user, name='register'),
     path('logout/', views.logout_user, name='logout'),
     path('login/', auth_views.LoginView.as_view(template_name='scanner/login.html'), name='login'),
     path('domain/<int:domain_id>/', views.domain_network, name='domain_network'),
+    path('add-domain/', views.add_domain, name='add_domain'),
+    path('settings/', views.settings_view, name='settings'),
+    path('settings/delete-domain/<int:domain_id>/', views.delete_domain, name='delete_domain'),
 ]

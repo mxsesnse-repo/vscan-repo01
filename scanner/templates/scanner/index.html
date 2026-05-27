@@ -7,10 +7,27 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 40px; text-align: center; }
         .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        button { background: #1877f2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; width: 100%; }
+        button { background: #1877f2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 15px; width: 100%; font-weight: bold; }
         button:hover { background: #165ebb; }
+        button:disabled { background: #cccccc; cursor: not-allowed; }
         pre { text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px; overflow-x: auto; }
         textarea { width: 95%; margin-top: 15px; padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: inherit; }
+        
+        /* New styles for camera and tabs */
+        .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: #e4e6eb; color: #050505; width: 50%; margin-top: 0; }
+        .tab-btn.active { background: #1877f2; color: white; }
+        
+        #cameraContainer { display: none; flex-direction: column; align-items: center; background: #000; border-radius: 8px; padding: 10px; margin-top: 15px; }
+        #videoElement { width: 100%; max-width: 500px; border-radius: 5px; background: #222; }
+        #photoPreview { width: 100%; max-width: 500px; border-radius: 5px; display: none; }
+        
+        .camera-controls { display: flex; gap: 10px; width: 100%; }
+        .btn-capture { background: #28a745; }
+        .btn-capture:hover { background: #218838; }
+        .btn-retake { background: #dc3545; display: none; }
+        .btn-retake:hover { background: #c82333; }
+
         .dashboard-link { display: block; background: #28a745; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-size: 16px; margin-top: 15px; width: 93%; margin-left: auto; margin-right: auto; }
         .dashboard-link:hover { background: #218838; }
     </style>
@@ -20,12 +37,33 @@
 <div class="container">
     <h1>📇 Local Business Card Scanner</h1>
     
+    <div class="tab-container">
+        <button type="button" id="tabUpload" class="tab-btn active" onclick="switchMode('upload')">📂 Upload File</button>
+        <button type="button" id="tabCamera" class="tab-btn" onclick="switchMode('camera')">📸 Use Camera</button>
+    </div>
+
     <form id="uploadForm">
         {% csrf_token %}
-        <input type="file" id="cardImage" accept="image/*" required>
-        <br>
+        
+        <div id="uploadSection">
+            <input type="file" id="cardImage" accept="image/*" style="width: 100%; padding: 20px 0;">
+        </div>
+
+        <div id="cameraSection" style="display: none;">
+            <div id="cameraContainer">
+                <video id="videoElement" autoplay playsinline></video>
+                <img id="photoPreview" alt="Captured Card">
+                <canvas id="canvasElement" style="display: none;"></canvas>
+                
+                <div class="camera-controls">
+                    <button type="button" id="captureBtn" class="btn-capture" onclick="takePhoto()">📸 Snap Photo</button>
+                    <button type="button" id="retakeBtn" class="btn-retake" onclick="retakePhoto()">🔄 Retake</button>
+                </div>
+            </div>
+        </div>
+
         <textarea id="manualNote" placeholder="Add a custom note (e.g., Met at the Indore tech conference...)" rows="3"></textarea>
-        <br>
+        
         <button type="submit" id="scanBtn">Scan & Save Card</button>
     </form>
 
@@ -40,38 +78,136 @@
 </div>
 
 <script>
-document.getElementById('uploadForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('scanBtn');
-    btn.innerText = "Scanning... Please wait";
-    btn.disabled = true;
+    // Variables for Camera
+    let currentMode = 'upload';
+    let stream = null;
+    let capturedBlob = null;
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvasElement');
+    const photoPreview = document.getElementById('photoPreview');
 
-    const formData = new FormData();
-    formData.append('image', document.getElementById('cardImage').files[0]);
-    formData.append('manual_note', document.getElementById('manualNote').value);
-    
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-    try {
-        const response = await fetch('/', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': csrfToken } 
-        });
-
-        const data = await response.json();
+    // Switch between Upload and Camera modes
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('tabUpload').classList.toggle('active', mode === 'upload');
+        document.getElementById('tabCamera').classList.toggle('active', mode === 'camera');
         
-        document.getElementById('resultBox').style.display = 'block';
-        document.getElementById('jsonResult').innerText = JSON.stringify(data, null, 2);
-        document.getElementById('manualNote').value = '';
-        document.getElementById('cardImage').value = '';
-    } catch (error) {
-        alert("Error scanning card. Check the terminal.");
-    } finally {
-        btn.innerText = "Scan & Save Card";
-        btn.disabled = false;
+        document.getElementById('uploadSection').style.display = mode === 'upload' ? 'block' : 'none';
+        document.getElementById('cameraSection').style.display = mode === 'camera' ? 'block' : 'none';
+        
+        if (mode === 'camera') {
+            document.getElementById('cameraContainer').style.display = 'flex';
+            startCamera();
+        } else {
+            stopCamera();
+        }
     }
-};
+
+    // Start Webcam/Phone Camera (Prefers Rear Camera on Mobile)
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment' } 
+            });
+            video.srcObject = stream;
+            retakePhoto(); // Reset UI state
+        } catch (err) {
+            alert("Could not access camera. Please ensure permissions are granted.");
+            console.error(err);
+            switchMode('upload'); // Fallback to upload
+        }
+    }
+
+    // Stop Webcam
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    }
+
+    // Snap the photo
+    function takePhoto() {
+        // Set canvas to match video dimensions
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Draw the current video frame onto the canvas
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to a blob (an image file in memory)
+        canvas.toBlob((blob) => {
+            capturedBlob = blob;
+            // Show preview
+            const imageUrl = URL.createObjectURL(blob);
+            photoPreview.src = imageUrl;
+            
+            // Toggle UI
+            video.style.display = 'none';
+            photoPreview.style.display = 'block';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('retakeBtn').style.display = 'block';
+        }, 'image/jpeg', 0.9);
+    }
+
+    // Reset to take another photo
+    function retakePhoto() {
+        capturedBlob = null;
+        video.style.display = 'block';
+        photoPreview.style.display = 'none';
+        document.getElementById('captureBtn').style.display = 'block';
+        document.getElementById('retakeBtn').style.display = 'none';
+    }
+
+    // Handle Form Submission
+    document.getElementById('uploadForm').onsubmit = async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        
+        // Check which mode the user is in and grab the image accordingly
+        if (currentMode === 'upload') {
+            const fileInput = document.getElementById('cardImage');
+            if (fileInput.files.length === 0) return alert("Please select an image file.");
+            formData.append('image', fileInput.files[0]);
+        } else {
+            if (!capturedBlob) return alert("Please snap a photo first.");
+            // Append the blob just like a normal file!
+            formData.append('image', capturedBlob, 'camera_capture.jpg');
+        }
+
+        formData.append('manual_note', document.getElementById('manualNote').value);
+        
+        const btn = document.getElementById('scanBtn');
+        btn.innerText = "Scanning... Please wait";
+        btn.disabled = true;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const response = await fetch('/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrfToken } 
+            });
+
+            const data = await response.json();
+            
+            document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('jsonResult').innerText = JSON.stringify(data, null, 2);
+            document.getElementById('manualNote').value = '';
+            
+            // Reset inputs
+            if (currentMode === 'upload') document.getElementById('cardImage').value = '';
+            if (currentMode === 'camera') retakePhoto();
+            
+        } catch (error) {
+            alert("Error scanning card. Check the terminal.");
+        } finally {
+            btn.innerText = "Scan & Save Card";
+            btn.disabled = false;
+        }
+    };
 </script>
 
 </body>

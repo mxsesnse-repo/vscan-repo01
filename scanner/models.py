@@ -1,12 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-
 class Company(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True, null=True)
     normalized_name = models.CharField(max_length=255, db_index=True, blank=True, default="")
-    website = models.URLField(blank=True, null=True)
+    website = models.CharField(max_length=255, blank=True, null=True)
     industry = models.CharField(max_length=100, blank=True, null=True)
     company_type = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -18,27 +17,27 @@ class Company(models.Model):
         ]
 
     def __str__(self):
-        return self.name
+        return self.name or "Unnamed Company"
 
 
 class Event(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True, null=True)
     event_type = models.CharField(max_length=100, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return self.name or "Unnamed Event"
 
 
 class Domain(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return self.name or "Unnamed Domain"
 
 
 class BusinessCard(models.Model):
@@ -54,7 +53,7 @@ class BusinessCard(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    first_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, blank=True, null=True)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     designation = models.CharField(max_length=255, blank=True, null=True)
     contact_type = models.CharField(max_length=50, choices=CONTACT_TYPES, default="other")
@@ -64,7 +63,7 @@ class BusinessCard(models.Model):
     )
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=50, blank=True, null=True)
-    website = models.URLField(blank=True, null=True)
+    website = models.CharField(max_length=255, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     manual_note = models.TextField(blank=True, null=True)
     card_image = models.ImageField(upload_to="cards/", blank=True, null=True)
@@ -94,13 +93,13 @@ class BusinessCard(models.Model):
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     contact = models.ForeignKey(BusinessCard, on_delete=models.CASCADE, related_name="tasks")
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True, null=True)
     due_date = models.DateField(blank=True, null=True)
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.title
+        return self.title or "Untitled Task"
 
 
 class Opportunity(models.Model):
@@ -112,17 +111,14 @@ class Opportunity(models.Model):
         ("closed_lost", "Closed Lost"),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, blank=True, null=True)
     contact = models.ForeignKey(BusinessCard, on_delete=models.CASCADE, related_name="opportunities")
     stage = models.CharField(max_length=50, choices=STAGE_CHOICES, default="lead")
-    value = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.title
+        return self.title or "Untitled Opportunity"
 
-
-# --- KNOWLEDGE GRAPH MODELS ---
 
 class KnowledgeEntity(models.Model):
     ENTITY_TYPES = [
@@ -148,6 +144,10 @@ class KnowledgeEntity(models.Model):
     display_name = models.CharField(max_length=255)
     canonical_name = models.CharField(max_length=255, db_index=True, default="")
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default="active")
+    
+    custom_tags = models.CharField(max_length=255, blank=True, null=True)
+    priority_score = models.IntegerField(default=0)
+    
     is_verified = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_entities"

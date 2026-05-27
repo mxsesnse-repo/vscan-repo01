@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; }
+        #mynetwork { width: 100%; height: 800px; border: 1px solid lightgray; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <h2>🧠 Interactive Knowledge Graph</h2>
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+        var nodes = new vis.DataSet([
+            { id: 1, label: "Olivia Wilson", group: "contact" },
+            { id: 2, label: "Jaganathan T", group: "contact" },
+            { id: 3, label: "Realbox Tech", group: "company" },
+            { id: 4, label: "Managing Director", group: "designation" },
+            { id: 5, label: "Mumbai", group: "city" },
+            { id: 6, label: "Artificial Intelligence", group: "domain" },
+            { id: 7, label: "Real Estate", group: "domain" }
+        ]);
+
+        var edges = new vis.DataSet([
+            { from: 1, to: 7, label: "works in" },
+            { from: 2, to: 3, label: "founded" },
+            { from: 2, to: 4, label: "has title" },
+            { from: 3, to: 5, label: "located in" },
+            { from: 2, to: 6, label: "interested in" },
+            { from: 3, to: 6, label: "builds" }
+        ]);
+
+        var container = document.getElementById("mynetwork");
+
+        var data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        var options = {
+            nodes: {
+                shape: "dot",
+                size: 30,
+                font: { size: 16, face: "Segoe UI" },
+                borderWidth: 2,
+                shadow: true
+            },
+            edges: {
+                width: 2,
+                font: { size: 12, align: "middle" },
+                arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                color: { inherit: "from" },
+                smooth: { type: "continuous" }
+            },
+            groups: {
+                contact: { 
+                    shape: "circularImage", 
+                    image: "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff", 
+                    color: { background: "#0D8ABC", border: "#095a7b" } 
+                },
+                company: { 
+                    shape: "box", 
+                    color: { background: "#28a745", border: "#1e7e34" }, 
+                    font: { color: "white" } 
+                },
+                city: { 
+                    shape: "star", 
+                    color: { background: "#ffc107", border: "#d39e00" } 
+                },
+                designation: { 
+                    shape: "diamond", 
+                    color: { background: "#6f42c1", border: "#553098" },
+                    font: { color: "white" }
+                },
+                domain: { 
+                    shape: "hexagon", 
+                    color: { background: "#fd7e14", border: "#e5670b" } 
+                }
+            },
+            physics: {
+                forceAtlas2Based: {
+                    gravitationalConstant: -100,
+                    centralGravity: 0.01,
+                    springLength: 200,
+                    springConstant: 0.08
+                },
+                maxVelocity: 50,
+                solver: "forceAtlas2Based",
+                timestep: 0.35,
+                stabilization: { iterations: 150 }
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+    </script>
+</body>
+</html>

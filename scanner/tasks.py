@@ -14,7 +14,6 @@ from .vector_store import upsert_vector
 OLLAMA_URL = "http://localhost:11434/api/generate"
 VISION_MODEL = "llama3.2-vision"
 
-
 @shared_task
 def process_business_card(card_id):
     try:
@@ -28,26 +27,25 @@ def process_business_card(card_id):
         img.save(buffer, format="JPEG", quality=85)
         encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-        prompt = """You are a business card extraction assistant.
-Extract contact details from the business card image.
-Return only valid JSON with these fields:
+        prompt = """Extract contact details from the business card image.
+You MUST return ONLY a raw JSON object. Do not wrap it in markdown. Do not add any text before or after the JSON.
+Use exactly these keys:
 {
-  "first_name": null,
-  "last_name": null,
+  "full_name": null,
   "designation": null,
   "company_name": null,
   "email": null,
   "phone": null,
   "website": null,
   "address": null
-}
-If a field is missing, return null. Do not include markdown or explanation."""
+}"""
 
         payload = {
             "model": VISION_MODEL,
             "prompt": prompt,
             "images": [encoded_image],
             "stream": False,
+            "format": "json"
         }
 
         response = requests.post(OLLAMA_URL, json=payload, timeout=180)
@@ -56,8 +54,10 @@ If a field is missing, return null. Do not include markdown or explanation."""
 
         card.raw_ai_response = ai_text
 
+        clean_text = ai_text
         json_match = re.search(r"\{.*\}", ai_text, re.DOTALL)
-        clean_text = json_match.group(0) if json_match else ai_text.replace("```json", "").replace("```", "").strip()
+        if json_match:
+            clean_text = json_match.group(0)
 
         try:
             parsed = json.loads(clean_text)
@@ -67,22 +67,35 @@ If a field is missing, return null. Do not include markdown or explanation."""
         card.extracted_json = parsed
 
         if not parsed.get("parse_error"):
-            first = parsed.get("first_name") or ""
-            last = parsed.get("last_name") or ""
-            if not first and not last:
-                full = parsed.get("name") or parsed.get("full_name") or ""
-                parts = full.split(" ", 1)
+            full_name = parsed.get("full_name") or ""
+            first = ""
+            last = ""
+
+            if full_name:
+                parts = full_name.split(" ", 1)
                 first = parts[0]
                 last = parts[1] if len(parts) > 1 else ""
 
-            card.first_name = first or card.first_name
-            card.last_name = last or ""
-            card.designation = parsed.get("designation")
-            card.email = parsed.get("email")
-            card.phone_number = parsed.get("phone")
-            card.website = parsed.get("website")
-            card.address = parsed.get("address")
-            card.company_name = parsed.get("company_name")
+            if first:
+                card.first_name = first
+            elif card.first_name == "Processing...":
+                card.first_name = "Unknown"
+
+            if last:
+                card.last_name = last
+
+            if parsed.get("designation"):
+                card.designation = parsed.get("designation")
+            if parsed.get("email"):
+                card.email = parsed.get("email")
+            if parsed.get("phone"):
+                card.phone_number = parsed.get("phone")
+            if parsed.get("website"):
+                card.website = parsed.get("website")
+            if parsed.get("address"):
+                card.address = parsed.get("address")
+            if parsed.get("company_name"):
+                card.company_name = parsed.get("company_name")
 
             extracted_company = parsed.get("company_name")
             if extracted_company:
