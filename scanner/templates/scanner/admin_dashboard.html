@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Smart CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f1f3f5; }
+        .card-stats { border-left: 4px solid #0dcaf0; border-radius: 8px; }
+        .card-feedback { border-left: 4px solid #ffc107; border-radius: 8px; }
+        .card-users { border-left: 4px solid #198754; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <nav class="bg-dark text-light py-3 shadow-sm sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-white">⚙️ CRM Admin Portal</h4>
+            <div>
+                <a href="/dashboard/" class="btn btn-outline-light btn-sm me-2">Exit Admin</a>
+                <a href="/logout/" class="btn btn-danger btn-sm fw-bold">Log Out</a>
+            </div>
+        </div>
+    </nav>
+    <main class="container py-5 flex-grow-1">
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card card-stats shadow-sm p-4 bg-white h-100 border-0">
+                    <div class="text-muted text-uppercase small fw-bold">System Status</div>
+                    <div class="display-6 fw-bold text-success mt-2">Online</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-users shadow-sm p-4 bg-white h-100 border-0">
+                    <div class="text-muted text-uppercase small fw-bold">Total Users</div>
+                    <div class="display-6 fw-bold text-dark mt-2">{{ total_users|default:"12" }}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-feedback shadow-sm p-4 bg-white h-100 border-0">
+                    <div class="text-muted text-uppercase small fw-bold">Pending Feedback</div>
+                    <div class="display-6 fw-bold text-dark mt-2">{{ feedbacks|length|default:"3" }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0">User Feedback & Suggestions</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="px-4">User</th>
+                                        <th>Rating</th>
+                                        <th>Suggestion</th>
+                                        <th>Date</th>
+                                        <th class="text-end px-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for fb in feedbacks %}
+                                    <tr>
+                                        <td class="px-4 fw-bold text-dark">{{ fb.user.username }}</td>
+                                        <td class="text-warning fs-5">
+                                            {% if fb.rating == 5 %}★★★★★{% elif fb.rating == 4 %}★★★★☆{% elif fb.rating == 3 %}★★★☆☆{% elif fb.rating == 2 %}★★☆☆☆{% else %}★☆☆☆☆{% endif %}
+                                        </td>
+                                        <td class="text-muted small">{{ fb.text|truncatechars:50 }}</td>
+                                        <td class="small text-muted">{{ fb.created_at|date:"M d, Y" }}</td>
+                                        <td class="text-end px-4">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewFeedbackModal{{ fb.id }}">View</button>
+                                            <button class="btn btn-sm btn-outline-danger">Dismiss</button>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td class="px-4 fw-bold text-dark">demo_user</td>
+                                        <td class="text-warning fs-5">★★★★★</td>
+                                        <td class="text-muted small">Please add a dark mode toggle to the dashboard!</td>
+                                        <td class="small text-muted">May 30, 2026</td>
+                                        <td class="text-end px-4">
+                                            <button class="btn btn-sm btn-outline-primary">View</button>
+                                            <button class="btn btn-sm btn-outline-danger">Dismiss</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 fw-bold text-dark">john_doe</td>
+                                        <td class="text-warning fs-5">★★★★☆</td>
+                                        <td class="text-muted small">Card scanner is great but taking a little time.</td>
+                                        <td class="small text-muted">May 29, 2026</td>
+                                        <td class="text-end px-4">
+                                            <button class="btn btn-sm btn-outline-primary">View</button>
+                                            <button class="btn btn-sm btn-outline-danger">Dismiss</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-2 px-4">
+                        <h5 class="fw-bold text-dark mb-0">System Control</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-grid gap-3">
+                            <a href="/admin/auth/user/" class="btn btn-light border text-start fw-bold">👥 Manage User Accounts</a>
+                            <a href="/admin/scanner/businesscard/" class="btn btn-light border text-start fw-bold">📇 Manage Scanned Cards</a>
+                            <a href="/admin/" class="btn btn-dark text-start fw-bold mt-2">⚙️ Open Full Django Admin</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

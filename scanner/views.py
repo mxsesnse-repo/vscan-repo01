@@ -11,7 +11,8 @@ from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 
-from .models import BusinessCard, Company, Event, Task, Domain, Opportunity, KnowledgeEntity, KnowledgeRelationship
+# Imported UserEmail and UserPhone here
+from .models import BusinessCard, Company, Event, Task, Domain, Opportunity, KnowledgeEntity, KnowledgeRelationship, UserEmail, UserPhone
 from .graph_services import sync_card_to_graph, get_contacts_at_company_via_graph, get_contacts_by_domain_via_graph
 from .tasks import process_business_card, index_contact_for_rag
 from .rag_services import embed_text
@@ -28,8 +29,8 @@ def scan_card(request):
             
             new_card = BusinessCard.objects.create(
                 user=request.user,
-                first_name="Processing...",
-                last_name="AI is scanning",
+                first_name="Pending",
+                last_name="Extraction...",
                 manual_note=user_note,
                 card_image=image_file,
                 is_approved=False
@@ -155,21 +156,19 @@ def edit_card(request, card_id):
         
         opp_title = request.POST.get('opp_title')
         opp_stage = request.POST.get('opp_stage', 'lead')
-        opp_value = request.POST.get('opp_value')
 
+        # Fixed the Opportunity creation bug here
         if opp_title: 
             if opportunity:
                 opportunity.title = opp_title
                 opportunity.stage = opp_stage
-                opportunity.value = opp_value if opp_value else None
                 opportunity.save()
             else:
                 Opportunity.objects.create(
                     user=request.user,
                     contact=card,
                     title=opp_title,
-                    stage=opp_stage,
-                    value=opp_value if opp_value else None
+                    stage=opp_stage
                 )
         
         sync_card_to_graph(card, user=request.user)
@@ -198,7 +197,7 @@ def chat_view(request):
                 f"Phone: {card.phone_number or 'N/A'}, Notes: {card.manual_note or 'N/A'}"
             )
             for opp in card.opportunities.all():
-                line += f" | Deal: {opp.title}, Stage: {opp.get_stage_display()}, Value: {opp.value}"
+                line += f" | Deal: {opp.title}, Stage: {opp.get_stage_display()}"
             sql_lines.append(line)
 
         vector_lines = []
@@ -332,13 +331,14 @@ def add_domain(request):
 @login_required
 def settings_view(request):
     domains = Domain.objects.filter(user=request.user).order_by('name')
+    emails = request.user.emails.all() 
+    phones = request.user.phones.all() 
     password_form = PasswordChangeForm(request.user)
 
     if request.method == 'POST':
         if 'update_profile' in request.POST:
             request.user.first_name = request.POST.get('first_name', '')
             request.user.last_name = request.POST.get('last_name', '')
-            request.user.email = request.POST.get('email', '')
             request.user.save()
             return redirect('/settings/')
             
@@ -348,9 +348,33 @@ def settings_view(request):
                 user = password_form.save()
                 update_session_auth_hash(request, user)
                 return redirect('/settings/')
+                
+        elif 'add_email' in request.POST:
+            new_email = request.POST.get('new_email', '').strip()
+            if new_email and not UserEmail.objects.filter(email=new_email).exists():
+                UserEmail.objects.create(user=request.user, email=new_email)
+            return redirect('/settings/')
+            
+        elif 'add_phone' in request.POST:
+            new_phone = request.POST.get('new_phone', '').strip()
+            if new_phone and not UserPhone.objects.filter(phone_number=new_phone).exists():
+                UserPhone.objects.create(user=request.user, phone_number=new_phone)
+            return redirect('/settings/')
+            
+        elif 'delete_email' in request.POST:
+            email_id = request.POST.get('email_id')
+            UserEmail.objects.filter(id=email_id, user=request.user).delete()
+            return redirect('/settings/')
+            
+        elif 'delete_phone' in request.POST:
+            phone_id = request.POST.get('phone_id')
+            UserPhone.objects.filter(id=phone_id, user=request.user).delete()
+            return redirect('/settings/')
 
     return render(request, 'scanner/settings.html', {
         'domains': domains,
+        'emails': emails,
+        'phones': phones,
         'password_form': password_form
     })
 
@@ -360,3 +384,58 @@ def delete_domain(request, domain_id):
         domain = get_object_or_404(Domain, id=domain_id, user=request.user)
         domain.delete()
     return redirect('/settings/')
+
+# views.py
+from django.shortcuts import redirect
+from django.contrib import messages
+
+def submit_feedback(request):
+    if request.method == "POST":
+        rating = request.POST.get('rating')
+        text = request.POST.get('feedback_text')
+        
+        # --- DO SOMETHING WITH THE DATA ---
+        # For now, let's just print it to your terminal:
+        print(f"🌟 NEW FEEDBACK RECEIVED 🌟")
+        print(f"Rating: {rating} out of 5 stars")
+        print(f"Message: {text}")
+        print(f"From User: {request.user.username}")
+        # ----------------------------------
+
+        # Show a success message on the screen and refresh the page
+        messages.success(request, 'Thank you for your feedback! It has been securely recorded.')
+        return redirect('/dashboard/') # Change this to your actual dashboard URL name if different
+    
+
+
+
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from .models import Feedback
+from django.contrib.auth.models import User
+
+def submit_feedback(request):
+    if request.method == "POST":
+        rating = request.POST.get('rating', 0)
+        text = request.POST.get('feedback_text', '')
+        
+        Feedback.objects.create(
+            user=request.user,
+            rating=rating,
+            text=text
+        )
+        messages.success(request, 'Thank you for your feedback! It has been securely recorded.')
+        
+    return redirect('dashboard')
+
+@staff_member_required
+def admin_dashboard(request):
+    feedbacks = Feedback.objects.all().order_by('-created_at')
+    total_users = User.objects.count()
+    
+    context = {
+        'feedbacks': feedbacks,
+        'total_users': total_users,
+    }
+    return render(request, 'admin_dashboard.html', context)

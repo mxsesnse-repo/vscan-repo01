@@ -20,4 +20,6 @@ urlpatterns = [
     path('add-domain/', views.add_domain, name='add_domain'),
     path('settings/', views.settings_view, name='settings'),
     path('settings/delete-domain/<int:domain_id>/', views.delete_domain, name='delete_domain'),
+    path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
+    path('custom-admin/', views.admin_dashboard, name='admin_dashboard'),
 ]

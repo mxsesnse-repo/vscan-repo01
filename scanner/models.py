@@ -293,3 +293,33 @@ class EmbeddingIndexMap(models.Model):
     embedding_model = models.CharField(max_length=255)
     index_backend = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class UserEmail(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='emails')
+    email = models.EmailField(unique=True)
+    is_primary = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.email} ({self.user.username})"
+
+
+class UserPhone(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='phones')
+    phone_number = models.CharField(max_length=20, unique=True)
+    is_primary = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.phone_number} ({self.user.username})"
+    
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Feedback(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField()
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

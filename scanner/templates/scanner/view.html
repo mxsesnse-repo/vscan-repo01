@@ -3,52 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Cards Dashboard</title>
+    <title>Smart CRM Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
+        html, body { height: 100%; }
+        body { background-color: #f8f9fa; display: flex; flex-direction: column; }
+        main { flex: 1; }
+        
         .metric-card { border-left: 4px solid #0d6efd; border-radius: 8px; }
         .company-card { border-left: 4px solid #198754; border-radius: 8px; }
         .task-card { border-left: 4px solid #ffc107; border-radius: 8px; }
         .queue-border { border: 2px dashed #ffc107; background-color: #fffdf5; }
+        .contact-checkbox { width: 1.5rem; height: 1.5rem; cursor: pointer; }
+        
+        .star { cursor: pointer; color: #ffc107; transition: color 0.2s; }
+        .star:hover { opacity: 0.8; }
+
+        .ad-space-small { 
+            background-color: #f1f3f5; 
+            border: 1px solid #dee2e6; 
+            color: #adb5bd; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 60px; 
+            border-radius: 6px; 
+            font-size: 0.85rem;
+            font-weight: bold; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
     </style>
 </head>
 <body>
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="fw-bold text-dark">Business Cards Dashboard</h1>
-            <div>
-                <a href="/chat/" class="btn btn-outline-primary me-2">Ask AI</a>
-                <a href="/export/" class="btn btn-outline-success me-2">Export CSV</a>
-                <a href="/" class="btn btn-primary me-2">Scan New Card</a>
-                <a href="/settings/" class="btn btn-secondary me-2">Settings</a>
-                <a href="/logout/" class="btn btn-outline-danger">Log Out</a>
+
+    <nav class="bg-dark text-light py-2 shadow-sm border-bottom border-dark sticky-top">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2 small">
+            <div class="d-flex gap-4 flex-wrap text-secondary">
+                <span>📅 <span id="liveDateTime" class="text-light fw-bold">Loading time...</span></span>
+                <span>📍 <span class="text-light">Mumbai, Maharashtra, India</span></span>
+                <span>🔄 Last Updated: <span class="text-light">Today</span></span>
+                <span>👤 Last Login: <span class="text-light">{{ user.last_login|date:"M d, Y H:i"|default:"Just now" }}</span></span>
             </div>
+            <div>
+                <a href="#" class="text-info fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpSupportModal">❓ Help & Support</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4 flex-grow-1">
+
+        <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2 pb-3 border-bottom">
+            <a href="/chat/" class="btn btn-outline-primary">Ask AI</a>
+            <a href="/export/" class="btn btn-outline-success">Export CSV</a>
+            <a href="/" class="btn btn-primary">Scan New Card</a>
+            <button type="button" class="btn btn-outline-info fw-bold" data-bs-toggle="modal" data-bs-target="#walletModal">💳 ₹<span id="navWalletBalance">0</span></button>
+            <a href="/settings/" class="btn btn-secondary">Settings</a>
+            <a href="/logout/" class="btn btn-danger text-white fw-bold">Log Out</a>
         </div>
 
         <div class="row g-4 mb-5">
             <div class="col-md-4">
                 <div class="card metric-card shadow-sm p-4 bg-white h-100">
-                    <div class="text-muted text-uppercase small fw-bold">Verified Contacts</div>
+                    <div class="text-muted text-uppercase small fw-bold">Contacts</div>
                     <div class="display-5 fw-bold text-dark mt-2">{{ total_contacts }}</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card company-card shadow-sm p-4 bg-white h-100">
-                    <div class="text-muted text-uppercase small fw-bold">Networked Companies</div>
+                    <div class="text-muted text-uppercase small fw-bold">Collaborations</div>
                     <div class="display-5 fw-bold text-dark mt-2">{{ total_companies }}</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card task-card shadow-sm p-4 bg-white h-100">
-                    <div class="text-muted text-uppercase small fw-bold">Pending Tasks</div>
+                    <div class="text-muted text-uppercase small fw-bold">Follow ups</div>
                     <div class="display-5 fw-bold text-dark mt-2">{{ pending_tasks }}</div>
                 </div>
             </div>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-            <h3 class="fw-bold text-dark mb-0">🧠 Knowledge Graph Networks</h3>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
+            <h3 class="fw-bold text-dark mb-0">Search query</h3>
             <div class="d-flex gap-2 align-items-center flex-wrap">
                 <select id="companyFilter" class="form-select border-primary shadow-sm" style="min-width: 180px;">
                     <option value="ALL">All Companies</option>
@@ -57,8 +93,13 @@
                     {% endfor %}
                 </select>
                 <input type="text" id="searchInput" class="form-control border-primary shadow-sm" style="min-width: 250px;" placeholder="Search names, emails, or websites...">
-                <button class="btn btn-outline-primary fw-bold shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#addDomainModal">+ Add Domain</button>
+                <button id="bulkShareBtn" class="btn btn-outline-success fw-bold shadow-sm text-nowrap" type="button" disabled>+ Share Selected (<span id="selectedCount">0</span>)</button>
+                <button class="btn btn-outline-primary fw-bold shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#addDomainModal">+ Add Tag</button>
             </div>
+        </div>
+
+        <div class="ad-space-small mb-5 shadow-sm">
+            Sponsored Content (468x60)
         </div>
 
         <div class="row g-4 mb-5">
@@ -94,7 +135,7 @@
             
             {% if not companies and not domains %}
             <div class="col-12 text-center py-4 bg-white rounded shadow-sm">
-                <p class="text-muted mb-0">No network connections established yet.</p>
+                <p class="text-muted mb-0">No cards are in the database.</p>
             </div>
             {% endif %}
         </div>
@@ -106,18 +147,16 @@
                         <h5 class="mb-0 fw-bold text-dark">📋 Upcoming Follow-ups</h5>
                     </div>
                     <ul class="list-group list-group-flush">
-                        {% for task in tasks %}
-                            {% if not task.is_completed %}
+                        {% for opp in opportunities %}
                             <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                 <div>
-                                    <strong class="text-dark">{{ task.title }}</strong><br>
-                                    <small class="text-muted">Contact: {{ task.contact.first_name }} {{ task.contact.last_name }}</small>
+                                    <strong class="text-dark">{{ opp.title }}</strong><br>
+                                    <small class="text-muted">Contact: {{ opp.contact.first_name }} {{ opp.contact.last_name }}</small>
                                 </div>
-                                <span class="badge bg-danger rounded-pill">Due: {{ task.due_date|date:"M d" }}</span>
+                                <span class="badge bg-info rounded-pill">Stage: {{ opp.get_stage_display }}</span>
                             </li>
-                            {% endif %}
                         {% empty %}
-                            <li class="list-group-item text-muted py-3">No pending tasks! You are all caught up.</li>
+                            <li class="list-group-item text-muted py-3">Open conversations appear here</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -175,19 +214,40 @@
         <div class="row g-4" id="approvedCardsContainer">
             {% for card in cards %}
             <div class="col-md-4 approved-card-item" data-company="{{ card.company_name|default:'Independent' }}" data-email="{{ card.email|default:'' }}" data-website="{{ card.website|default:'' }}">
-                <div class="card h-100 shadow-sm border-0">
+                <div class="card h-100 shadow-sm border-0 position-relative">
+                    <div class="position-absolute top-0 end-0 m-3 z-1">
+                        <input class="form-check-input contact-checkbox shadow-sm" type="checkbox" value="{{ card.id }}"
+                            data-name="{{ card.first_name }} {{ card.last_name }}"
+                            data-company="{{ card.company_name|default:'Independent' }}"
+                            data-email="{{ card.email|default:'N/A' }}"
+                            data-phone="{{ card.phone_number|default:'N/A' }}">
+                    </div>
+
                     {% if card.card_image %}
                     <img src="{{ card.card_image.url }}" class="card-img-top object-fit-cover" style="height: 150px;" alt="Card Image">
                     {% endif %}
                     <div class="card-body p-4">
-                        <h5 class="card-title fw-bold m-0">{{ card.first_name }} {{ card.last_name }}</h5>
+                        <h5 class="card-title fw-bold m-0 pe-4">{{ card.first_name }} {{ card.last_name }}</h5>
                         <span class="badge bg-light text-dark border mt-1 mb-3">{{ card.get_relationship_status_display|default:"Prospect" }}</span>
                         <p class="text-primary small mb-3 fw-bold">🏢 {{ card.company_name|default:"Independent" }}</p>
                         <div class="mb-1 small text-muted"><strong>Email:</strong> {{ card.email|default:"N/A" }}</div>
                         <div class="mb-1 small text-muted"><strong>Web:</strong> {% if card.website %}<a href="{{ card.website }}" target="_blank">{{ card.website }}</a>{% else %}N/A{% endif %}</div>
                     </div>
                     <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0">
-                        <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                        <div class="d-flex justify-content-end gap-2 border-top pt-3 flex-wrap">
+                            <button type="button" class="btn btn-sm btn-outline-dark payment-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
+                                data-name="{{ card.first_name }} {{ card.last_name }}">
+                                📱 Pay
+                            </button>
+
+                            <button type="button" class="btn btn-sm btn-outline-success single-share-btn" data-bs-toggle="modal" data-bs-target="#shareModal"
+                                data-name="{{ card.first_name }} {{ card.last_name }}"
+                                data-company="{{ card.company_name|default:'Independent' }}"
+                                data-email="{{ card.email|default:'N/A' }}"
+                                data-phone="{{ card.phone_number|default:'N/A' }}">
+                                Share
+                            </button>
+                            
                             <a href="/edit/{{ card.id }}/" class="btn btn-sm btn-outline-primary">Edit</a>
                             <form method="POST" action="/copy/{{ card.id }}/" class="m-0">
                                 {% csrf_token %}
@@ -195,7 +255,7 @@
                             </form>
                             <form method="POST" action="/delete/{{ card.id }}/" class="m-0">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Delete</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Del</button>
                             </form>
                         </div>
                     </div>
@@ -203,13 +263,25 @@
             </div>
             {% endfor %}
         </div>
-    </div>
+
+    </main>
+
+    <footer class="bg-dark text-light py-5 mt-auto border-top border-secondary">
+        <div class="container text-center">
+            <h5 class="mb-2 fw-bold">MxSense Telingent Solutions Pvt Ltd</h5>
+            <p class="mb-0 small text-secondary">
+                FA1 3 rd Floor,D Block, Incubation cell, IITM Research Park,<br>
+                Kanagam road, Taramani, Chennai 600113<br>
+                Tamil Nadu
+            </p>
+        </div>
+    </footer>
 
     <div class="modal fade" id="addDomainModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Add Custom Domain</h5>
+                    <h5 class="modal-title fw-bold">Add Custom Tag</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST" action="/add-domain/">
@@ -221,8 +293,170 @@
         </div>
     </div>
 
+    <div class="modal fade" id="shareModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h6 class="modal-title fw-bold">Share Contact(s)</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center pb-4">
+                    <p class="text-muted small mb-3">Send via:</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a id="whatsappShare" href="#" target="_blank" class="btn btn-success rounded-circle shadow-sm" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                            <span style="font-size: 1.5rem; line-height: 1;">💬</span>
+                        </a>
+                        <a id="emailShare" href="#" target="_blank" class="btn btn-primary rounded-circle shadow-sm" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                            <span style="font-size: 1.5rem; line-height: 1;">📧</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white border-bottom-0 pb-3">
+                    <h5 class="modal-title fw-bold">📱 PhonePe / Wallet Payment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-4">Send an invoice request or charge a linked wallet for <strong id="paymentContactName" class="text-dark">User</strong>.</p>
+                    
+                    <form id="paymentSimulationForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Select Payment Mode</label>
+                            <select class="form-select mb-3" id="paymentMethod" required>
+                                <option value="phonepe">PhonePe Wallet / UPI</option>
+                                <option value="wallet">In-App Wallet Balance</option>
+                                <option value="qrcode">Generate UPI QR Code</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Amount (INR)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="paymentAmount" placeholder="0.00" step="1" min="1" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small">Reference Note</label>
+                            <input type="text" class="form-control" id="paymentDescription" placeholder="e.g., Project Milestone Payment" required>
+                        </div>
+                        
+                        <div id="paymentSuccessAlert" class="alert alert-success d-none mb-3" role="alert">
+                            ✅ Transaction parsed securely via PhonePe merchant hub!
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" id="submitPaymentBtn" class="btn btn-dark fw-bold py-2">Pay via Selected Method</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="walletModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-info text-white border-bottom-0 pb-3">
+                    <h5 class="modal-title fw-bold">💳 Top-Up Wallet</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">Current Balance: <strong class="text-dark fs-5">₹<span id="modalWalletBalance">0</span></strong></p>
+                    <form id="walletTopUpForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Amount to Add (INR)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" class="form-control" id="topUpAmount" placeholder="500" step="1" min="1" required>
+                            </div>
+                        </div>
+                        <div id="walletSuccessAlert" class="alert alert-success d-none mb-3 small" role="alert">
+                            Funds added successfully!
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" id="submitTopUpBtn" class="btn btn-info text-white fw-bold py-2">Add Funds</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="helpSupportModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white border-bottom-0 pb-3">
+                    <h5 class="modal-title fw-bold">❓ Help & Support</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <h6 class="fw-bold text-dark">Standard Operating Guide</h6>
+                    <ul class="small text-muted mb-4">
+                        <li><strong>Scan Cards:</strong> Use the camera to extract details automatically via AI.</li>
+                        <li><strong>Verify Queue:</strong> Review and approve the AI data extraction before saving.</li>
+                        <li><strong>Manage Networks:</strong> Tag domains, build deal pipelines, and share info in bulk.</li>
+                    </ul>
+
+                    <h6 class="fw-bold text-dark border-top pt-3">Direct Support & Complaints</h6>
+                    <p class="small text-muted mb-4">Having an issue or found a bug? Email our support team directly to file a formal complaint:</p>
+                    <a href="mailto:support@smartcrm.com?subject=Support%20Request%20/%20Complaint" class="btn btn-outline-danger btn-sm mb-4 fw-bold w-100">
+                        ✉️ Email: support@smartcrm.com
+                    </a>
+
+                    <h6 class="fw-bold text-dark border-top pt-3">Rate Your Experience</h6>
+                    <form method="POST" action="/submit-feedback/">
+    {% csrf_token %}
+    <div class="mb-2 fs-3 text-center" id="starContainer">
+        <span class="star" data-val="1">☆</span>
+        <span class="star" data-val="2">☆</span>
+        <span class="star" data-val="3">☆</span>
+        <span class="star" data-val="4">☆</span>
+        <span class="star" data-val="5">☆</span>
+        <input type="hidden" id="starRatingValue" name="rating" value="0">
+    </div>
+    <div class="mb-3">
+        <label class="form-label fw-bold small text-muted">Suggestions</label>
+        <textarea class="form-control" name="feedback_text" rows="3" placeholder="Tell us what you think or how we can improve..." required></textarea>
+    </div>
+    <button type="submit" class="btn btn-dark w-100 fw-bold">Submit</button>
+</form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function updateClock() {
+            const now = new Date();
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('liveDateTime').textContent = now.toLocaleDateString('en-IN', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock(); 
+
+        const stars = document.querySelectorAll('.star');
+        const ratingValue = document.getElementById('starRatingValue');
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const val = parseInt(this.getAttribute('data-val'));
+                ratingValue.value = val;
+                stars.forEach(s => {
+                    if(parseInt(s.getAttribute('data-val')) <= val) {
+                        s.textContent = '★';
+                    } else {
+                        s.textContent = '☆';
+                    }
+                });
+            });
+        });
+
         const searchInput = document.getElementById('searchInput');
         const companyFilter = document.getElementById('companyFilter');
         const allCards = document.querySelectorAll('.approved-card-item');
@@ -238,6 +472,156 @@
         }
         searchInput.addEventListener('keyup', filterContacts);
         companyFilter.addEventListener('change', filterContacts);
+
+        const checkboxes = document.querySelectorAll('.contact-checkbox');
+        const bulkShareBtn = document.getElementById('bulkShareBtn');
+        const selectedCountSpan = document.getElementById('selectedCount');
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const checkedCount = document.querySelectorAll('.contact-checkbox:checked').length;
+                selectedCountSpan.textContent = checkedCount;
+                if (checkedCount > 0) {
+                    bulkShareBtn.disabled = false;
+                    bulkShareBtn.classList.remove('btn-outline-success');
+                    bulkShareBtn.classList.add('btn-success');
+                } else {
+                    bulkShareBtn.disabled = true;
+                    bulkShareBtn.classList.add('btn-outline-success');
+                    bulkShareBtn.classList.remove('btn-success');
+                }
+            });
+        });
+
+        function updateShareLinks(shareText, subjectText) {
+            const encodedText = encodeURIComponent(shareText);
+            const subject = encodeURIComponent(subjectText);
+            document.getElementById('whatsappShare').href = `https://wa.me/?text=${encodedText}`;
+            document.getElementById('emailShare').href = `https://mail.google.com/mail/?view=cm&fs=1&to=&su=${subject}&body=${encodedText}`;
+        }
+
+        bulkShareBtn.addEventListener('click', () => {
+            const checkedBoxes = document.querySelectorAll('.contact-checkbox:checked');
+            let combinedText = "Here are the shared contacts:\n\n";
+            
+            checkedBoxes.forEach((cb, index) => {
+                const name = cb.getAttribute('data-name');
+                const company = cb.getAttribute('data-company');
+                const email = cb.getAttribute('data-email');
+                const phone = cb.getAttribute('data-phone');
+                combinedText += `${index + 1}. ${name}\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\n\n`;
+            });
+            
+            combinedText += "Shared via Smart CRM.";
+            updateShareLinks(combinedText, `Shared Contacts (${checkedBoxes.length})`);
+            
+            const shareModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('shareModal'));
+            shareModalInstance.show();
+        });
+
+        const shareModalElement = document.getElementById('shareModal');
+        shareModalElement.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (!button) return; 
+            
+            const name = button.getAttribute('data-name');
+            const company = button.getAttribute('data-company');
+            const email = button.getAttribute('data-email');
+            const phone = button.getAttribute('data-phone');
+
+            const shareText = `Here is the contact information for ${name}:\n\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\n\nShared via Smart CRM.`;
+            updateShareLinks(shareText, `Contact Info: ${name}`);
+        });
+
+        const currentWalletBalanceRaw = localStorage.getItem('smartcrm_wallet_balance');
+        let currentWalletBalance = currentWalletBalanceRaw ? parseInt(currentWalletBalanceRaw) : 0;
+        const navWalletBalance = document.getElementById('navWalletBalance');
+        const modalWalletBalance = document.getElementById('modalWalletBalance');
+
+        function updateWalletDisplay() {
+            navWalletBalance.textContent = currentWalletBalance;
+            modalWalletBalance.textContent = currentWalletBalance;
+        }
+        updateWalletDisplay();
+
+        const walletTopUpForm = document.getElementById('walletTopUpForm');
+        const submitTopUpBtn = document.getElementById('submitTopUpBtn');
+        const walletSuccessAlert = document.getElementById('walletSuccessAlert');
+
+        walletTopUpForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const topUpAmount = parseInt(document.getElementById('topUpAmount').value);
+            
+            submitTopUpBtn.disabled = true;
+            submitTopUpBtn.textContent = "Processing...";
+
+            setTimeout(() => {
+                currentWalletBalance += topUpAmount;
+                localStorage.setItem('smartcrm_wallet_balance', currentWalletBalance);
+                updateWalletDisplay();
+
+                walletSuccessAlert.classList.remove('d-none');
+                submitTopUpBtn.textContent = "Success";
+                
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('walletModal')).hide();
+                    walletTopUpForm.reset();
+                    walletSuccessAlert.classList.add('d-none');
+                    submitTopUpBtn.disabled = false;
+                    submitTopUpBtn.textContent = "Add Funds";
+                }, 1000);
+            }, 800);
+        });
+
+        const paymentModalElement = document.getElementById('paymentModal');
+        const paymentContactName = document.getElementById('paymentContactName');
+        const paymentForm = document.getElementById('paymentSimulationForm');
+        const paymentSuccessAlert = document.getElementById('paymentSuccessAlert');
+        const submitPaymentBtn = document.getElementById('submitPaymentBtn');
+
+        paymentModalElement.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const name = button.getAttribute('data-name');
+            paymentContactName.textContent = name;
+            paymentForm.reset();
+            paymentSuccessAlert.classList.add('d-none');
+            submitPaymentBtn.disabled = false;
+            submitPaymentBtn.textContent = "Pay via Selected Method";
+        });
+
+        paymentForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const method = document.getElementById('paymentMethod').value;
+            const amount = parseInt(document.getElementById('paymentAmount').value);
+
+            if (method === 'wallet') {
+                if (amount > currentWalletBalance) {
+                    alert("Insufficient wallet balance! Please top up via the top navigation bar.");
+                    return;
+                }
+            }
+
+            submitPaymentBtn.disabled = true;
+            submitPaymentBtn.textContent = "Connecting to Gateway...";
+            
+            setTimeout(() => {
+                if (method === 'wallet') {
+                    currentWalletBalance -= amount;
+                    localStorage.setItem('smartcrm_wallet_balance', currentWalletBalance);
+                    updateWalletDisplay();
+                    paymentSuccessAlert.textContent = "✅ Paid successfully from Wallet!";
+                } else {
+                    paymentSuccessAlert.textContent = "✅ Transaction parsed securely via PhonePe merchant hub!";
+                }
+                
+                paymentSuccessAlert.classList.remove('d-none');
+                submitPaymentBtn.textContent = "Success";
+                
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(paymentModalElement).hide();
+                }, 1500);
+            }, 1000);
+        });
     </script>
 </body>
 </html>

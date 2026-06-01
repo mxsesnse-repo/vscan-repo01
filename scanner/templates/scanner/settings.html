@@ -3,105 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings | Business Cards</title>
+    <title>Account Settings</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
+        .payment-border { border-top: 4px solid #6f42c1; }
+        .clickable-header { cursor: pointer; transition: background-color 0.2s; }
+        .clickable-header:hover { background-color: #f1f3f5 !important; border-radius: 6px; }
     </style>
 </head>
 <body>
     <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-5">
-            <h1 class="fw-bold text-dark">⚙️ Settings</h1>
-            <div>
-                <a href="/dashboard/" class="btn btn-outline-primary me-2">Back to Dashboard</a>
-                <a href="/logout/" class="btn btn-outline-danger">Log Out</a>
-            </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-dark">Account Settings</h2>
+            <a href="/dashboard/" class="btn btn-outline-primary">Back to Dashboard</a>
         </div>
 
         <div class="row g-4">
+            <div class="col-12">
+                <div class="card payment-border shadow-sm border-0 mb-2">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold text-dark">📱 UPI Payment Configuration</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small mb-4">Set your UPI details here to dynamically generate payment links in your dashboard.</p>
+                        <form id="paymentConfigForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-muted">PRIMARY UPI ID</label>
+                                    <input type="text" class="form-control" id="upi_id" placeholder="yourname@ybl">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-muted">MERCHANT / DISPLAY NAME</label>
+                                    <input type="text" class="form-control" id="merchant_name" placeholder="Smart CRM">
+                                </div>
+                            </div>
+                            <div class="mt-4 d-flex align-items-center">
+                                <button type="button" class="btn btn-dark fw-bold px-4" id="saveUpiBtn">Save Payment Config</button>
+                                <span id="paymentSaveBadge" class="badge bg-success ms-3 d-none p-2 text-center">Settings Saved!</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-md-6">
                 <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-dark">Profile Information</h5>
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold text-dark">Profile Information</h5>
                     </div>
                     <div class="card-body p-4">
                         <form method="POST">
                             {% csrf_token %}
-                            <input type="hidden" name="update_profile" value="1">
-                            
                             <div class="mb-3">
                                 <label class="form-label text-muted small fw-bold">USERNAME (Read Only)</label>
                                 <input type="text" class="form-control bg-light" value="{{ request.user.username }}" readonly>
                             </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label text-muted small fw-bold">FIRST NAME</label>
-                                    <input type="text" name="first_name" class="form-control" value="{{ request.user.first_name }}">
+                                    <input type="text" class="form-control" name="first_name" value="{{ request.user.first_name }}">
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6">
                                     <label class="form-label text-muted small fw-bold">LAST NAME</label>
-                                    <input type="text" name="last_name" class="form-control" value="{{ request.user.last_name }}">
+                                    <input type="text" class="form-control" name="last_name" value="{{ request.user.last_name }}">
                                 </div>
                             </div>
-                            <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold">EMAIL ADDRESS</label>
-                                <input type="email" name="email" class="form-control" value="{{ request.user.email }}">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">STREET ADDRESS</label>
+                                <input type="text" class="form-control" name="address" placeholder="123 Main St, Apt 4B">
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 fw-bold">Save Profile</button>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-5">
+                                    <label class="form-label text-muted small fw-bold">CITY</label>
+                                    <input type="text" class="form-control" name="city">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted small fw-bold">STATE</label>
+                                    <input type="text" class="form-control" name="state">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted small fw-bold">PIN CODE</label>
+                                    <input type="text" class="form-control" name="pincode">
+                                </div>
+                            </div>
+                            <button type="submit" name="update_profile" class="btn btn-primary w-100">Save Profile</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-4 px-4 d-flex justify-content-between align-items-center clickable-header" data-bs-toggle="collapse" data-bs-target="#passwordCollapse" aria-expanded="false" aria-controls="passwordCollapse">
+                        <h5 class="fw-bold text-dark mb-0">Change Password</h5>
+                        <span class="text-primary fw-bold">▼</span>
+                    </div>
+                    <div class="collapse" id="passwordCollapse">
+                        <div class="card-body p-4 border-top">
+                            <form method="POST">
+                                {% csrf_token %}
+                                {{ password_form.as_p }}
+                                <button type="submit" name="change_password" class="btn btn-outline-primary w-100 mt-2">Update Password</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold text-dark">Billing Information</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <p class="mb-1 text-muted small fw-bold">CURRENT PLAN</p>
+                            <p class="mb-0 fw-bold">Smart CRM Standard</p>
+                        </div>
+                        <div class="mb-4">
+                            <p class="mb-1 text-muted small fw-bold">NEXT BILLING CYCLE</p>
+                            <p class="mb-0">June 30, 2026</p>
+                        </div>
+                        <button type="button" class="btn btn-outline-dark w-100" onclick="alert('Redirecting to secure billing portal...');">Manage Subscription</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="card shadow-sm border-0 mb-4" style="border-top: 4px solid #0dcaf0 !important;">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold text-dark mb-0">Wallet History</h5>
+                        <span class="badge bg-info text-white fs-6">Balance: ₹<span id="settingsWalletBalance">0</span></span>
+                    </div>
+                    <div class="card-body p-4">
+                        <ul class="list-group list-group-flush mb-0" id="walletHistoryList">
+                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0 text-dark small fw-bold">Recent Top-up</h6>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Syncing latest transactions...</small>
+                                </div>
+                                <span class="text-success fw-bold small">+ ₹--</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold text-dark">Manage Domain Tags</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <ul class="list-group mb-3">
+                            {% for domain in domains %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ domain.name }}
+                                <form method="POST" action="/delete-domain/{{ domain.id }}/" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </li>
+                            {% empty %}
+                            <li class="list-group-item text-muted text-center border-0">No custom domains added yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold text-dark">Emails</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <ul class="list-group mb-3">
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-light">
+                                {{ request.user.email }} <span class="badge bg-primary">Primary</span>
+                            </li>
+                            {% for email_obj in emails %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ email_obj.email }}
+                                <form method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="email_id" value="{{ email_obj.id }}">
+                                    <button type="submit" name="delete_email" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <form method="POST" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="email" name="new_email" class="form-control" placeholder="Add backup email..." required>
+                            <button type="submit" name="add_email" class="btn btn-primary">Add</button>
                         </form>
                     </div>
                 </div>
 
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-dark">Change Password</h5>
+                    <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold text-dark">Phone Numbers</h5>
                     </div>
                     <div class="card-body p-4">
-                        <form method="POST">
-                            {% csrf_token %}
-                            <input type="hidden" name="change_password" value="1">
-                            
-                            {% for field in password_form %}
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small fw-bold">{{ field.label|upper }}</label>
-                                    <input type="{{ field.field.widget.input_type }}" name="{{ field.html_name }}" class="form-control" required>
-                                    {% if field.errors %}
-                                        <small class="text-danger">{{ field.errors.0 }}</small>
-                                    {% endif %}
-                                </div>
+                        <ul class="list-group mb-3">
+                            {% for phone_obj in phones %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ phone_obj.phone_number }}
+                                <form method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="phone_id" value="{{ phone_obj.id }}">
+                                    <button type="submit" name="delete_phone" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            </li>
+                            {% empty %}
+                            <li class="list-group-item text-muted small text-center">No phone numbers linked yet.</li>
                             {% endfor %}
-                            
-                            <button type="submit" class="btn btn-warning w-100 fw-bold mt-2">Update Password</button>
+                        </ul>
+                        <form method="POST" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="text" name="new_phone" class="form-control" placeholder="e.g., +1 555-0100" required>
+                            <button type="submit" name="add_phone" class="btn btn-primary">Add</button>
                         </form>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-md-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-dark">Manage Domain Tags</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            {% for domain in domains %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-3 px-4">
-                                    <span class="fw-bold text-dark">🏷️ {{ domain.name }}</span>
-                                    <form method="POST" action="/settings/delete-domain/{{ domain.id }}/" class="m-0">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this domain tag?');">Delete</button>
-                                    </form>
-                                </li>
-                            {% empty %}
-                                <li class="list-group-item text-center py-5 text-muted">No custom domains added yet.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const upiInput = document.getElementById('upi_id');
+            const merchantInput = document.getElementById('merchant_name');
+            const saveBtn = document.getElementById('saveUpiBtn');
+            const badge = document.getElementById('paymentSaveBadge');
+
+            const savedUpi = localStorage.getItem('smartcrm_upi_id');
+            const savedMerchant = localStorage.getItem('smartcrm_merchant');
+
+            if (savedUpi) upiInput.value = savedUpi;
+            if (savedMerchant) merchantInput.value = savedMerchant;
+
+            saveBtn.addEventListener('click', () => {
+                localStorage.setItem('smartcrm_upi_id', upiInput.value);
+                localStorage.setItem('smartcrm_merchant', merchantInput.value);
+                
+                badge.classList.remove('d-none');
+                setTimeout(() => badge.classList.add('d-none'), 2500);
+            });
+
+            const currentWalletBalanceRaw = localStorage.getItem('smartcrm_wallet_balance');
+            const currentWalletBalance = currentWalletBalanceRaw ? parseInt(currentWalletBalanceRaw) : 0;
+            document.getElementById('settingsWalletBalance').textContent = currentWalletBalance;
+
+            const historyList = document.getElementById('walletHistoryList');
+            if (currentWalletBalance > 0) {
+                historyList.innerHTML = `
+                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 text-dark small fw-bold">Wallet Top-up</h6>
+                            <small class="text-muted" style="font-size: 0.75rem;">Just now</small>
+                        </div>
+                        <span class="text-success fw-bold small">+ ₹${currentWalletBalance}</span>
+                    </li>
+                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 text-dark small fw-bold">Account Setup Bonus</h6>
+                            <small class="text-muted" style="font-size: 0.75rem;">System</small>
+                        </div>
+                        <span class="text-secondary fw-bold small">₹0</span>
+                    </li>
+                `;
+            } else {
+                historyList.innerHTML = `
+                    <li class="list-group-item px-0 text-center text-muted small">
+                        No transactions found. Top up your wallet in the Dashboard.
+                    </li>
+                `;
+            }
+        });
+    </script>
 </body>
 </html>

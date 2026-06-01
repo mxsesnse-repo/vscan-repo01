@@ -142,3 +142,8 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+# Custom Authentication Backend for Multiple Emails and Phone Numbers
+AUTHENTICATION_BACKENDS = [
+    'scanner.backends.MultiAuthBackend',
+    'django.contrib.auth.backends.ModelBackend', # Keep the default as a fallback
+]
