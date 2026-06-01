@@ -25,10 +25,11 @@ jobs:
 
     # Step C: Install your project requirements
     # Step C: Install your project requirements
+    # Step C: Install your project requirements
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install django psycopg2-binary celery redis python-dotenv pillow requests
+        pip install -r requirements.txt
 
     # Step D: Run a basic system check to make sure Django doesn't crash
     - name: Run Django System Check
