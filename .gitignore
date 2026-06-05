@@ -2,7 +2,7 @@
 .env
 *.env
 secret_key.txt
-
+debug.log
 # --- Databases ---
 db.sqlite3
 *.sqlite3

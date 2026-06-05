@@ -316,9 +316,13 @@ class BillingProfile(models.Model):
     plan_name = models.CharField(max_length=100, default='Smart CRM Standard')
     next_billing_cycle = models.DateField(default=default_billing_date)
     has_paid = models.BooleanField(default=False)
+    
+    # NEW: Churn Tracking
+    is_active = models.BooleanField(default=True)
+    canceled_on = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.username} - {self.plan_name}"
+        return f"{self.user.username} - {'Active' if self.is_active else 'Churned'}"
 
 class Advertisement(models.Model):
     PLACEMENT_CHOICES = [
@@ -346,3 +350,26 @@ class Advertisement(models.Model):
 
     def __str__(self):
         return self.ad_content
+
+
+
+class CustomerPreference(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='ad_preferences')
+    ad_tech = models.BooleanField(default=True)
+    ad_finance = models.BooleanField(default=True)
+    ad_marketing = models.BooleanField(default=False)
+    ad_events = models.BooleanField(default=True)
+
+class TransactionHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
+    title = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=50, default='Pending') # Can be 'Pending' or 'Paid'
+    order_id = models.CharField(max_length=100, blank=True, null=True) 
+    payment_id = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount} - {self.status}"
+    class Meta:
+        ordering = ['-date']

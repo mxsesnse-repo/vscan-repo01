@@ -6,3 +6,5 @@ python-dotenv>=1.0.0
 Pillow>=10.0.0
 requests>=2.31.0
 chromadb>=0.4.0
+razorpay>=1.4.1
+psutil>=5.9.0

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Manager - Smart CRM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f1f3f5; }
+    </style>
+</head>
+<body>
+    
+    <nav class="bg-dark text-light py-3 shadow-sm sticky-top">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <h4 class="mb-0 fw-bold text-white text-nowrap">⚙️ Configuration Manager</h4>
+            <div class="text-nowrap">
+                <a href="/custom-admin/" class="btn btn-outline-light btn-sm me-2">Back to Dashboard</a>
+                <a href="/logout/" class="btn btn-danger btn-sm fw-bold">Log Out</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-5 flex-grow-1" style="max-width: 800px;">
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white border-bottom py-3 px-4">
+                <h5 class="mb-0 fw-bold text-dark">Global Application Settings</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="/custom-admin/configs/">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold">Security & Performance</h6>
+                        <div class="form-check form-switch mb-3 mt-3">
+                            <input class="form-check-input" type="checkbox" id="maintenanceMode" name="maintenance_mode" {% if maintenance_mode %}checked{% endif %}>
+                            <label class="form-check-label" for="maintenanceMode">
+                                Enable Maintenance Mode
+                                <br><small class="text-muted">Users will see a 'System under maintenance' screen. Admins can still log in.</small>
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="debugMode" name="debug_mode" {% if debug_mode %}checked{% endif %}>
+                            <label class="form-check-label" for="debugMode">
+                                Enable Debug Mode
+                                <br><small class="text-muted">Displays detailed error pages. Should be disabled in production.</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4 text-muted">
+
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">System Limits</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Max File Upload Size (MB)</label>
+                                <select class="form-select bg-light" name="max_upload_size">
+                                    <option value="2" {% if max_upload_size == '2' %}selected{% endif %}>2 MB</option>
+                                    <option value="5" {% if max_upload_size == '5' %}selected{% endif %}>5 MB</option>
+                                    <option value="10" {% if max_upload_size == '10' %}selected{% endif %}>10 MB</option>
+                                    <option value="50" {% if max_upload_size == '50' %}selected{% endif %}>50 MB</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Session Timeout (Minutes)</label>
+                                <input type="number" class="form-control bg-light" name="session_timeout" value="{{ session_timeout }}" min="15" max="1440" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                        <a href="/custom-admin/" class="btn btn-light border shadow-sm me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary fw-bold shadow-sm px-4">Save Configurations</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

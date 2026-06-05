@@ -13,94 +13,70 @@
         .metric-card { border-left: 4px solid #0d6efd; border-radius: 8px; }
         .company-card { border-left: 4px solid #198754; border-radius: 8px; }
         .task-card { border-left: 4px solid #ffc107; border-radius: 8px; }
+        .subs-card { border-left: 4px solid #6f42c1; border-radius: 8px; }
         .queue-border { border: 2px dashed #ffc107; background-color: #fffdf5; }
         .contact-checkbox { width: 1.5rem; height: 1.5rem; cursor: pointer; }
         
         .star { cursor: pointer; color: #ffc107; transition: color 0.2s; }
         .star:hover { opacity: 0.8; }
-
-        .ad-space-small { 
-            background-color: #f1f3f5; 
-            border: 1px solid #dee2e6; 
-            color: #adb5bd; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            height: 60px; 
-            border-radius: 6px; 
-            font-size: 0.85rem;
-            font-weight: bold; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-        }
     </style>
 </head>
 <body>
 
     <nav class="bg-dark text-light py-2 shadow-sm border-bottom border-dark sticky-top">
-        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2 small">
-            <div class="d-flex gap-4 flex-wrap text-secondary">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2 small">
+            
+            <div class="d-flex align-items-center gap-2">
+                <img src="https://via.placeholder.com/120x35?text=YOUR+LOGO" alt="Company Logo" height="35" class="d-inline-block align-text-top rounded">
+                <span class="fw-bold fs-5 text-white ms-2">Smart CRM</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-4 flex-wrap text-secondary">
                 <span>📅 <span id="liveDateTime" class="text-light fw-bold">Loading time...</span></span>
                 <span>📍 <span class="text-light">Mumbai, Maharashtra, India</span></span>
                 <span>🔄 Last Updated: <span class="text-light">Today</span></span>
                 <span>👤 Last Login: <span class="text-light">{{ user.last_login|date:"M d, Y H:i"|default:"Just now" }}</span></span>
+                <span class="border-start border-secondary ps-3 ms-1">
+                    <a href="#" class="text-info fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpSupportModal">❓ Help & Support</a>
+                </span>
             </div>
-            <div>
-                <a href="#" class="text-info fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpSupportModal">❓ Help & Support</a>
-            </div>
+
         </div>
     </nav>
 
     <main class="container py-4 flex-grow-1">
 
         <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2 pb-3 border-bottom">
-            <button class="btn btn-warning fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#advertiseModal">📢 Advertise</button>
             <a href="/chat/" class="btn btn-outline-primary">Ask AI</a>
             <a href="/export/" class="btn btn-outline-success">Export CSV</a>
-            <a href="/" class="btn btn-primary">Scan New Card</a>
+            <a href="/" class="btn btn-primary">Scan Card</a>
             <a href="/settings/" class="btn btn-secondary">Settings</a>
             <a href="/logout/" class="btn btn-danger text-white fw-bold">Log Out</a>
         </div>
 
-        {% if approved_ads %}
-            {% for ad in approved_ads %}
-            <div class="card shadow-sm mb-5 border-0 text-center bg-white" style="border-top: 4px solid #ffc107;">
-                <div class="card-body p-3">
-                    <h5 class="fw-bold text-dark mb-3">📢 {{ ad.ad_content }}</h5>
-                    {% if ad.ad_file.name|slice:"-4:" == ".mp4" or ad.ad_file.name|slice:"-5:" == ".webm" %}
-                        <video width="100%" style="max-height: 250px; object-fit: contain;" controls autoplay muted loop>
-                            <source src="{{ ad.ad_file.url }}" type="video/mp4">
-                            Your browser does not support the video.
-                        </video>
-                    {% else %}
-                        <img src="{{ ad.ad_file.url }}" class="img-fluid rounded" style="max-height: 250px; object-fit: contain;" alt="Advertisement">
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="ad-space-small mb-5 shadow-sm">
-                Sponsored Content (468x60)
-            </div>
-        {% endif %}
-
         <div class="row g-4 mb-5">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card metric-card shadow-sm p-4 bg-white h-100">
                     <div class="text-muted text-uppercase small fw-bold">Contacts</div>
                     <div class="display-5 fw-bold text-dark mt-2">{{ total_contacts }}</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card company-card shadow-sm p-4 bg-white h-100">
                     <div class="text-muted text-uppercase small fw-bold">Collaborations</div>
                     <div class="display-5 fw-bold text-dark mt-2">{{ total_companies }}</div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card task-card shadow-sm p-4 bg-white h-100">
                     <div class="text-muted text-uppercase small fw-bold">Follow ups</div>
                     <div class="display-5 fw-bold text-dark mt-2">{{ pending_tasks }}</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card subs-card shadow-sm p-4 bg-white h-100">
+                    <div class="text-muted text-uppercase small fw-bold">Active Subscriptions</div>
+                    <div class="display-5 fw-bold text-dark mt-2">{{ active_subscriptions|default:"1" }}</div>
                 </div>
             </div>
         </div>
@@ -108,11 +84,11 @@
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
             <h3 class="fw-bold text-dark mb-0">Search query</h3>
             <div class="d-flex gap-2 align-items-center flex-wrap">
-                <select id="companyFilter" class="form-select border-primary shadow-sm" style="min-width: 180px;">
-                    <option value="ALL">All Companies</option>
-                    {% for company in companies %}
-                    <option value="{{ company.name }}">{{ company.name }}</option>
-                    {% endfor %}
+                <select id="companyFilter" class="form-select form-select-sm w-auto shadow-sm border-primary" onchange="window.location.href='?topic_filter=' + this.value;">
+                    <option value="company" {% if current_topic_filter == 'company' %}selected{% endif %}>Company</option>
+                    <option value="location" {% if current_topic_filter == 'location' %}selected{% endif %}>Location</option>
+                    <option value="designation" {% if current_topic_filter == 'designation' %}selected{% endif %}>Designation</option>
+                    <option value="domain" {% if current_topic_filter == 'domain' %}selected{% endif %}>Domain</option>
                 </select>
                 <input type="text" id="searchInput" class="form-control border-primary shadow-sm" style="min-width: 250px;" placeholder="Search names, emails, or websites...">
                 <button id="bulkShareBtn" class="btn btn-outline-success fw-bold shadow-sm text-nowrap" type="button" disabled>+ Share Selected (<span id="selectedCount">0</span>)</button>
@@ -184,8 +160,14 @@
         <div class="row mb-5">
             <div class="col-12">
                 <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white border-bottom py-3">
+                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 fw-bold text-dark">☁️ Topics of Interest (Bag of Words)</h5>
+                        <select class="form-select form-select-sm w-auto shadow-sm border-primary" onchange="window.location.href='?topic_filter=' + this.value;">
+                            <option value="company" {% if current_topic_filter == 'company' %}selected{% endif %}>Company</option>
+                            <option value="location" {% if current_topic_filter == 'location' %}selected{% endif %}>Location</option>
+                            <option value="designation" {% if current_topic_filter == 'designation' %}selected{% endif %}>Designation</option>
+                            <option value="domain" {% if current_topic_filter == 'domain' %}selected{% endif %}>Domain</option>
+                        </select>
                     </div>
                     <div class="card-body p-5 d-flex flex-wrap justify-content-center gap-4 align-items-center text-center">
                         {% for word, size in bag_of_words %}
@@ -227,11 +209,19 @@
                     </div>
                     <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0">
                         <div class="d-flex justify-content-end gap-2">
+                            {% if card.is_duplicate %}
+                            <form method="POST" action="/approve/{{ card.id }}/" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-warning px-3">Force Approve</button>
+                            </form>
+                            <a href="/edit/{{ card.id }}/" class="btn btn-sm btn-primary">Merge / Update</a>
+                            {% else %}
                             <form method="POST" action="/approve/{{ card.id }}/" class="m-0">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-success px-3">Approve Record</button>
                             </form>
                             <a href="/edit/{{ card.id }}/" class="btn btn-sm btn-outline-primary">Edit</a>
+                            {% endif %}
                             <form method="POST" action="/delete/{{ card.id }}/" class="m-0">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Trash</button>
@@ -245,12 +235,20 @@
         {% endif %}
         
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-success mb-0">✅ Approved Records</h3>
+            <h3 class="fw-bold text-success mb-0">List of Contacts</h3>
         </div>
         
         <div class="row g-4" id="approvedCardsContainer">
             {% for card in cards %}
-            <div class="col-md-4 approved-card-item" data-company="{{ card.company_name|default:'Independent' }}" data-email="{{ card.email|default:'' }}" data-website="{{ card.website|default:'' }}">
+            <div
+                class="col-md-4 approved-card-item"
+                data-company="{{ card.company_name|default:'Independent' }}"
+                data-location="{{ card.address|default:'' }}"
+                data-designation="{{ card.designation|default:'' }}"
+                data-domain="{% for domain in card.domains.all %}{{ domain.name }} {% endfor %}"
+                data-email="{{ card.email|default:'' }}"
+                data-website="{{ card.website|default:'' }}"
+>
                 <div class="card h-100 shadow-sm border-0 position-relative">
                     <div class="position-absolute top-0 end-0 m-3 z-1">
                         <input class="form-check-input contact-checkbox shadow-sm" type="checkbox" value="{{ card.id }}"
@@ -261,7 +259,7 @@
                     </div>
 
                     {% if card.card_image %}
-                    <img src="{{ card.card_image.url }}" class="card-img-top object-fit-cover" style="height: 150px;" alt="Card Image">
+                    <img src="{{ card.card_image.url }}" class="card-img-top object-fit-cover" style="height: 150px;">
                     {% endif %}
                     <div class="card-body p-4">
                         <h5 class="card-title fw-bold m-0 pe-4">{{ card.first_name }} {{ card.last_name }}</h5>
@@ -272,11 +270,6 @@
                     </div>
                     <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0">
                         <div class="d-flex justify-content-end gap-2 border-top pt-3 flex-wrap">
-                            <button type="button" class="btn btn-sm btn-outline-dark payment-btn" data-bs-toggle="modal" data-bs-target="#paymentModal"
-                                data-name="{{ card.first_name }} {{ card.last_name }}">
-                                📱 Pay
-                            </button>
-
                             <button type="button" class="btn btn-sm btn-outline-success single-share-btn" data-bs-toggle="modal" data-bs-target="#shareModal"
                                 data-name="{{ card.first_name }} {{ card.last_name }}"
                                 data-company="{{ card.company_name|default:'Independent' }}"
@@ -314,58 +307,6 @@
         </div>
     </footer>
 
-    <div class="modal fade" id="advertiseModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-warning border-bottom-0 pb-3">
-                    <h5 class="modal-title fw-bold text-dark">📢 Submit Ad Campaign</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4 bg-white">
-                    <p class="text-muted small mb-4">Submit your advertisement application here. Once approved by the Backend Team, it will automatically appear in the dashboard.</p>
-                    <form method="POST" action="/submit-ad/" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">Ad Title / Content</label>
-                                <input type="text" class="form-control" name="ad_content" placeholder="e.g., Q3 Tech Summit Promo" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">Upload Asset (Photo / Video)</label>
-                                <input type="file" class="form-control" name="ad_file" accept="image/*,video/*" required>
-                            </div>
-                        </div>
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">Placement</label>
-                                <select class="form-select" name="configure_services" required>
-                                    <option value="dashboard_top">Dashboard Top Banner</option>
-                                    <option value="sidebar_right">Sidebar Advertisement</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-dark">Strategy</label>
-                                <select class="form-select" name="manage_services" required>
-                                    <option value="fixed_term">Fixed Time Duration</option>
-                                    <option value="ppc">Pay Per Click (PPC)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row g-4 mb-5">
-                            <div class="col-md-4"><label class="form-label fw-bold text-dark">Start Date</label><input type="date" class="form-control" name="start_date" required></div>
-                            <div class="col-md-4"><label class="form-label fw-bold text-dark">End Date</label><input type="date" class="form-control" name="end_date" required></div>
-                            <div class="col-md-4"><label class="form-label fw-bold text-dark">Time</label><input type="time" class="form-control" name="running_time" required></div>
-                        </div>
-                        <div class="d-flex justify-content-end gap-3 pt-3 border-top">
-                            <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-warning text-dark fw-bold px-5">Submit Application</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="addDomainModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
@@ -390,7 +331,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center pb-4">
-                    <p class="text-muted small mb-3">Send via:</p>
                     <div class="d-flex justify-content-center gap-3">
                         <a id="whatsappShare" href="#" target="_blank" class="btn btn-success rounded-circle shadow-sm" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; text-decoration: none;">
                             <span style="font-size: 1.5rem; line-height: 1;">💬</span>
@@ -404,49 +344,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="paymentModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-dark text-white border-bottom-0 pb-3">
-                    <h5 class="modal-title fw-bold">📱 PhonePe / Payment Request</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <p class="text-muted mb-4">Send an invoice request for <strong id="paymentContactName" class="text-dark">User</strong>.</p>
-                    
-                    <form id="paymentSimulationForm">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Select Payment Mode</label>
-                            <select class="form-select mb-3" id="paymentMethod" required>
-                                <option value="phonepe">PhonePe / UPI Link</option>
-                                <option value="qrcode">Generate UPI QR Code</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Amount (INR)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">₹</span>
-                                <input type="number" class="form-control" id="paymentAmount" placeholder="0.00" step="1" min="1" required>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small">Reference Note</label>
-                            <input type="text" class="form-control" id="paymentDescription" placeholder="e.g., Project Milestone Payment" required>
-                        </div>
-                        
-                        <div id="paymentSuccessAlert" class="alert alert-success d-none mb-3" role="alert">
-                            ✅ Payment link generated successfully via PhonePe!
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" id="submitPaymentBtn" class="btn btn-dark fw-bold py-2">Generate Link</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="helpSupportModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -455,20 +352,6 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <h6 class="fw-bold text-dark">Standard Operating Guide</h6>
-                    <ul class="small text-muted mb-4">
-                        <li><strong>Scan Cards:</strong> Use the camera to extract details automatically via AI.</li>
-                        <li><strong>Verify Queue:</strong> Review and approve the AI data extraction before saving.</li>
-                        <li><strong>Manage Networks:</strong> Tag domains, build deal pipelines, and share info in bulk.</li>
-                    </ul>
-
-                    <h6 class="fw-bold text-dark border-top pt-3">Direct Support & Complaints</h6>
-                    <p class="small text-muted mb-4">Having an issue or found a bug? Email our support team directly to file a formal complaint:</p>
-                    <a href="mailto:support@smartcrm.com?subject=Support%20Request%20/%20Complaint" class="btn btn-outline-danger btn-sm mb-4 fw-bold w-100">
-                        ✉️ Email: support@smartcrm.com
-                    </a>
-
-                    <h6 class="fw-bold text-dark border-top pt-3">Rate Your Experience</h6>
                     <form method="POST" action="/submit-feedback/">
                         {% csrf_token %}
                         <div class="mb-2 fs-3 text-center" id="starContainer">
@@ -517,20 +400,51 @@
         });
 
         const searchInput = document.getElementById('searchInput');
-        const companyFilter = document.getElementById('companyFilter');
-        const allCards = document.querySelectorAll('.approved-card-item');
+const companyFilter = document.getElementById('companyFilter');
+const allCards = document.querySelectorAll('.approved-card-item');
 
-        function filterContacts() {
-            let filterText = searchInput.value.toLowerCase();
-            let selectedCompany = companyFilter.value;
-            allCards.forEach(card => {
-                let textMatch = card.innerText.toLowerCase().includes(filterText) || card.dataset.website.toLowerCase().includes(filterText);
-                let companyMatch = (selectedCompany === "ALL") || (card.dataset.company === selectedCompany);
-                card.style.display = (textMatch && companyMatch) ? '' : 'none';
-            });
+function filterContacts() {
+
+    const searchText = searchInput.value.trim().toLowerCase();
+    const filterType = companyFilter.value;
+
+    allCards.forEach(card => {
+
+        let searchableValue = "";
+
+        switch (filterType) {
+
+            case "company":
+                searchableValue = card.dataset.company || "";
+                break;
+
+            case "location":
+                searchableValue = card.dataset.location || "";
+                break;
+
+            case "designation":
+                searchableValue = card.dataset.designation || "";
+                break;
+
+            case "domain":
+                searchableValue = card.dataset.domain || "";
+                break;
+
+            default:
+                searchableValue = card.innerText || "";
         }
-        searchInput.addEventListener('keyup', filterContacts);
-        companyFilter.addEventListener('change', filterContacts);
+
+        if (searchableValue.toLowerCase().includes(searchText)) {
+            card.style.display = "";
+        } else {
+            card.style.display = "none";
+        }
+
+    });
+}
+
+searchInput.addEventListener('input', filterContacts);
+companyFilter.addEventListener('change', filterContacts);
 
         const checkboxes = document.querySelectorAll('.contact-checkbox');
         const bulkShareBtn = document.getElementById('bulkShareBtn');
@@ -561,7 +475,7 @@
 
         bulkShareBtn.addEventListener('click', () => {
             const checkedBoxes = document.querySelectorAll('.contact-checkbox:checked');
-            let combinedText = "Here are the shared contacts:\n\n";
+            let combinedText = "";
             
             checkedBoxes.forEach((cb, index) => {
                 const name = cb.getAttribute('data-name');
@@ -571,9 +485,7 @@
                 combinedText += `${index + 1}. ${name}\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\n\n`;
             });
             
-            combinedText += "Shared via Smart CRM.";
             updateShareLinks(combinedText, `Shared Contacts (${checkedBoxes.length})`);
-            
             const shareModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('shareModal'));
             shareModalInstance.show();
         });
@@ -588,40 +500,8 @@
             const email = button.getAttribute('data-email');
             const phone = button.getAttribute('data-phone');
 
-            const shareText = `Here is the contact information for ${name}:\n\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\n\nShared via Smart CRM.`;
+            const shareText = `Here is the contact information for ${name}:\n\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\n\n`;
             updateShareLinks(shareText, `Contact Info: ${name}`);
-        });
-
-        const paymentModalElement = document.getElementById('paymentModal');
-        const paymentContactName = document.getElementById('paymentContactName');
-        const paymentForm = document.getElementById('paymentSimulationForm');
-        const paymentSuccessAlert = document.getElementById('paymentSuccessAlert');
-        const submitPaymentBtn = document.getElementById('submitPaymentBtn');
-
-        paymentModalElement.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const name = button.getAttribute('data-name');
-            paymentContactName.textContent = name;
-            paymentForm.reset();
-            paymentSuccessAlert.classList.add('d-none');
-            submitPaymentBtn.disabled = false;
-            submitPaymentBtn.textContent = "Generate Link";
-        });
-
-        paymentForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            submitPaymentBtn.disabled = true;
-            submitPaymentBtn.textContent = "Connecting to Gateway...";
-            
-            setTimeout(() => {
-                paymentSuccessAlert.classList.remove('d-none');
-                submitPaymentBtn.textContent = "Success";
-                
-                setTimeout(() => {
-                    bootstrap.Modal.getInstance(paymentModalElement).hide();
-                }, 1500);
-            }, 1000);
         });
     </script>
 </body>

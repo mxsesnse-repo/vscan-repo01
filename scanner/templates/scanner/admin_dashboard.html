@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal - Smart CRM</title>
+    <title>Backend Team Portal - Smart CRM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f1f3f5; }
@@ -11,20 +11,20 @@
         .card-users { border-left: 4px solid #0d6efd; border-radius: 8px; }
         .nav-tabs .nav-link { color: #495057; }
         .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; font-weight: bold; }
+
+        canvas {
+            max-height: 220px !important;
+            width: 100% !important;
+        }
     </style>
 </head>
 <body>
     
     <nav class="bg-dark text-light py-3 shadow-sm sticky-top">
         <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <h4 class="mb-0 fw-bold text-white text-nowrap">⚙️ Admin Portal</h4>
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="/admin/auth/user/" class="btn btn-sm btn-outline-info fw-bold">👥 Manage Users</a>
-                <a href="/admin/scanner/businesscard/" class="btn btn-sm btn-outline-info fw-bold">📇 Manage Cards</a>
-                <a href="/admin/" class="btn btn-sm btn-light fw-bold text-dark">⚙️ Open Full Django Admin</a>
-            </div>
+            <h4 class="mb-0 fw-bold text-white text-nowrap">⚙️ Backend Team Portal</h4>
             <div class="text-nowrap">
-                <a href="/dashboard/" class="btn btn-outline-light btn-sm me-2">Exit Admin</a>
+                <a href="/dashboard/" class="btn btn-outline-light btn-sm me-2">Exit Portal</a>
                 <a href="/logout/" class="btn btn-danger btn-sm fw-bold">Log Out</a>
             </div>
         </div>
@@ -34,10 +34,13 @@
         
         <ul class="nav nav-tabs mb-4 border-bottom-0" id="adminTabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active px-4 py-3" data-bs-toggle="tab" data-bs-target="#dashboard">📊 System Overview</button>
+                <button class="nav-link active px-4 py-3" data-bs-toggle="tab" data-bs-target="#overview">📊 System Overview</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link px-4 py-3" data-bs-toggle="tab" data-bs-target="#billing">💳 Billing & Payments</button>
+                <button class="nav-link px-4 py-3" data-bs-toggle="tab" data-bs-target="#customers">👥 Customer Management</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link px-4 py-3" data-bs-toggle="tab" data-bs-target="#application">⚙️ Application Management</button>
             </li>
             <li class="nav-item">
                 <button class="nav-link px-4 py-3" data-bs-toggle="tab" data-bs-target="#ads">📢 Ad Management</button>
@@ -46,108 +49,147 @@
 
         <div class="tab-content" id="adminTabsContent">
             
-            <!-- SYSTEM OVERVIEW TAB -->
-            <div class="tab-pane fade show active" id="dashboard">
+            <div class="tab-pane fade show active" id="overview">
                 <div class="row g-4 mb-5">
-                    <div class="col-md-3"><div class="card card-stats shadow-sm p-4 bg-white h-100 border-0"><div class="text-muted text-uppercase small fw-bold">System Status</div><div class="display-6 fw-bold text-success mt-2">Online</div></div></div>
-                    <div class="col-md-3"><div class="card card-users shadow-sm p-4 bg-white h-100 border-0"><div class="text-muted text-uppercase small fw-bold">Total Users</div><div class="display-6 fw-bold text-dark mt-2">{{ total_users|default:"0" }}</div></div></div>
+                    <div class="col-md-3"><div class="card card-stats shadow-sm p-4 bg-white h-100 border-0"><div class="text-muted text-uppercase small fw-bold">Total Customers</div><div class="display-6 fw-bold text-dark mt-2">{{ total_users|default:"0" }}</div></div></div>
                     <div class="col-md-3"><div class="card shadow-sm p-4 bg-white h-100 border-0" style="border-left: 4px solid #198754;"><div class="text-muted text-uppercase small fw-bold">Paid Accounts</div><div class="display-6 fw-bold text-success mt-2">{{ paid_count|default:"0" }}</div></div></div>
                     <div class="col-md-3"><div class="card shadow-sm p-4 bg-white h-100 border-0" style="border-left: 4px solid #dc3545;"><div class="text-muted text-uppercase small fw-bold">Unpaid Accounts</div><div class="display-6 fw-bold text-danger mt-2">{{ unpaid_count|default:"0" }}</div></div></div>
+                    <div class="col-md-3"><div class="card shadow-sm p-4 bg-white h-100 border-0" style="border-left: 4px solid #6f42c1;"><div class="text-muted text-uppercase small fw-bold">Customer Churn</div><div class="display-6 fw-bold text-secondary mt-2">{{ churn_rate|default:"0" }}</div></div></div>
                 </div>
                 
-                <div class="card shadow-sm border-0 mb-5"><div class="card-header bg-white pt-4 pb-2 px-4 border-0"><h5 class="fw-bold text-dark">📈 User Registration Frequency</h5></div><div class="card-body p-4"><canvas id="userGrowthChart" height="80"></canvas></div></div>
-
-                <div class="card shadow-sm border-0 mb-5">
-                    <div class="card-header bg-white py-3"><h5 class="mb-0 fw-bold text-dark">👥 User & Admin Management</h5></div>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light text-muted small"><tr><th class="px-4 py-3">Username</th><th class="py-3">Email</th><th class="py-3">Joined Date</th><th class="px-4 py-3 text-end">Actions</th></tr></thead>
-                            <tbody>
-                                {% for u in users %}
-                                <tr>
-                                    <td class="px-4 py-3 fw-bold">{{ u.username }}{% if u.is_staff and not u.is_superuser %}<span class="badge bg-primary ms-2">Admin</span>{% endif %}</td>
-                                    <td class="py-3">{{ u.email|default:"N/A" }}</td>
-                                    <td class="py-3">{{ u.date_joined|date:"M d, Y" }}</td>
-                                    <td class="px-4 py-3 text-end">
-                                        {% if u == request.user %}<span class="badge bg-secondary">Current User</span>
-                                        {% elif u.is_superuser %}<span class="badge bg-dark">Superuser</span>
-                                        {% else %}
-                                            <form method="POST" action="/custom-admin/toggle-admin/{{ u.id }}/" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-warning">Toggle Admin</button></form>
-                                            <form method="POST" action="/custom-admin/close-account/{{ u.id }}/" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this account?');">Close</button></form>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="4" class="text-center text-muted py-4">No users found.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div class="row g-4 mb-4">
+                    <div class="col-12 mb-2 d-flex justify-content-end gap-2">
+                        <a href="?timeframe=days" class="btn btn-sm {% if current_timeframe == 'days' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold shadow-sm">Days</a>
+                        <a href="?timeframe=weeks" class="btn btn-sm {% if current_timeframe == 'weeks' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold shadow-sm">Weeks</a>
+                        <a href="?timeframe=months" class="btn btn-sm {% if current_timeframe == 'months' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold shadow-sm">Months</a>
+                        <a href="?timeframe=years" class="btn btn-sm {% if current_timeframe == 'years' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold shadow-sm">Years</a>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card p-3 shadow-sm border-0 h-100">
+                            <h6 class="fw-bold">Customer Growth Trends</h6>
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card p-3 shadow-sm border-0 h-100">
+                            <h6 class="fw-bold">Subscription Acquisition</h6>
+                            <canvas id="acquisitionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card p-3 shadow-sm border-0 h-100">
+                            <h6 class="fw-bold">Active vs Inactive Utilization</h6>
+                            <canvas id="utilizationChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card p-3 shadow-sm border-0 h-100">
+                            <h6 class="fw-bold">Total Gross Revenue (Subscriptions)</h6>
+                            <canvas id="revenueChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- BILLING TAB -->
-            <div class="tab-pane fade" id="billing">
+            <div class="tab-pane fade" id="customers">
                 <div class="row g-4 mb-4">
-                    <div class="col-lg-8">
-                        <div class="card shadow-sm border-0 h-100">
-                            <div class="card-header bg-white py-3 border-0"><h5 class="fw-bold mb-0">📈 Revenue & Payment Trends</h5></div>
-                            <div class="card-body p-4"><canvas id="revenueChart" height="100"></canvas></div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 d-flex flex-column gap-4">
-                        <div class="card shadow-sm border-0 flex-grow-1 p-4 text-center bg-success text-white" style="border-radius: 12px;">
-                            <h6 class="text-uppercase fw-bold text-white-50">Collected This Month</h6>
-                            <h1 class="display-5 fw-bold mb-0">₹45,000</h1>
-                        </div>
-                        <div class="card shadow-sm border-0 flex-grow-1 p-4 text-center bg-warning text-dark" style="border-radius: 12px;">
-                            <h6 class="text-uppercase fw-bold text-dark-50">Pending Invoices</h6>
-                            <h1 class="display-5 fw-bold mb-0">₹12,500</h1>
-                        </div>
-                    </div>
+                    <div class="col-md-3"><div class="card card-stats shadow-sm p-4 bg-white h-100 border-0"><div class="text-muted text-uppercase small fw-bold">Total Customers</div><div class="display-6 fw-bold text-dark mt-2">{{ total_users|default:"0" }}</div></div></div>
+                    <div class="col-md-3"><div class="card shadow-sm p-4 bg-white h-100 border-0" style="border-left: 4px solid #198754;"><div class="text-muted text-uppercase small fw-bold">Paid Accounts</div><div class="display-6 fw-bold text-success mt-2">{{ paid_count|default:"0" }}</div></div></div>
+                    <div class="col-md-3"><div class="card shadow-sm p-4 bg-white h-100 border-0" style="border-left: 4px solid #dc3545;"><div class="text-muted text-uppercase small fw-bold">Unpaid Accounts</div><div class="display-6 fw-bold text-danger mt-2">{{ unpaid_count|default:"0" }}</div></div></div>
+                    <div class="col-md-3"><div class="card shadow-sm p-4 bg-white h-100 border-0" style="border-left: 4px solid #6f42c1;"><div class="text-muted text-uppercase small fw-bold">Customer Churn</div><div class="display-6 fw-bold text-secondary mt-2">{{ churn_rate|default:"0" }}</div></div></div>
                 </div>
 
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="d-flex gap-2">
+                        <select id="customerFilter" class="form-select w-auto shadow-sm border-primary">
+                            <option value="all">All Customers</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="subscribed">Subscribed</option>
+                            <option value="unpaid">Unpaid/Overdue</option>
+                        </select>
+                    </div>
+                </div>
+                
                 <div class="card shadow-sm border-0 mb-5">
                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-dark">📋 Client Payment Log</h5>
-                        <button class="btn btn-sm btn-outline-primary fw-bold">Download Log (CSV)</button>
+                        <h5 class="mb-0 fw-bold text-dark">📋 Customer Management</h5>
+                        <button class="btn btn-sm btn-outline-success fw-bold">Download CSV</button>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light text-muted small">
                                 <tr>
-                                    <th class="px-4 py-3">Client Username</th>
-                                    <th class="py-3">Subscription Plan</th>
-                                    <th class="py-3">Next Billing Date</th>
-                                    <th class="py-3">Status</th>
-                                    <th class="px-4 py-3 text-end">Manage Payment</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Plan</th>
+                                    <th>Billing Date</th>
+                                    <th>Payment</th>
+                                    <th>Subscription</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for profile in billing_profiles %}
-                                <tr>
-                                    <td class="px-4 py-3 fw-bold text-dark">{{ profile.user.username }}</td>
-                                    <td class="py-3">{{ profile.plan_name }}</td>
-                                    <td class="py-3">{{ profile.next_billing_cycle|date:"M d, Y" }}</td>
-                                    <td class="py-3">
-                                        {% if profile.has_paid %}
-                                            <span class="badge bg-success shadow-sm px-2 py-1">Paid / Active</span>
-                                        {% else %}
-                                            <span class="badge bg-danger shadow-sm px-2 py-1">Unpaid / Overdue</span>
+                                {% for u in users %}
+                                <tr class="customer-row" data-status="{% if u.billing_profile.is_active %}active{% else %}inactive{% endif %}" data-payment="{% if u.billing_profile.has_paid %}paid{% else %}unpaid{% endif %}">
+                                    <td class="px-4 py-3 fw-bold text-dark">
+                                        {{ u.username }}
+                                        {% if u.is_staff and not u.is_superuser %}
+                                            <span class="badge bg-primary ms-2">Backend Team</span>
                                         {% endif %}
                                     </td>
-                                    <td class="px-4 py-3 text-end">
-                                        {% if profile.has_paid %}
-                                            <button class="btn btn-sm btn-light border text-muted" disabled>Up to Date</button>
+                                    <td>{{ u.email|default:"N/A" }}</td>
+                                    <td>{{ u.billing_profile.plan_name }}</td>
+                                    <td>{{ u.billing_profile.next_billing_cycle }}</td>
+                                    <td>
+                                        {% if u.billing_profile.has_paid %}
+                                            <span class="badge bg-success">Paid</span>
                                         {% else %}
-                                            <button class="btn btn-sm btn-success shadow-sm fw-bold">Mark as Paid</button>
-                                            <button class="btn btn-sm btn-outline-dark shadow-sm fw-bold ms-1">Send Reminder</button>
+                                            <span class="badge bg-danger">Unpaid</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if u.billing_profile.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">On Hold</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 text-end d-flex gap-1 justify-content-end">
+                                        {% if u == request.user %}
+                                            <span class="badge bg-secondary">Current User</span>
+                                        {% elif u.is_superuser %}
+                                            <span class="badge bg-dark">Superuser</span>
+                                        {% else %}
+                                            <a href="/custom-admin/billing-history/{{ u.id }}/" class="btn btn-sm btn-info text-white fw-bold">Billing</a>
+
+                                            {% if u.billing_profile.is_active %}
+                                                <form method="POST" action="/custom-admin/hold-subscription/{{ u.id }}/" class="m-0">
+                                                    {% csrf_token %}
+                                                    <button class="btn btn-sm btn-warning text-dark fw-bold">Hold</button>
+                                                </form>
+                                            {% else %}
+                                                <form method="POST" action="/custom-admin/activate-subscription/{{ u.id }}/" class="m-0">
+                                                    {% csrf_token %}
+                                                    <button class="btn btn-sm btn-success fw-bold">Activate</button>
+                                                </form>
+                                            {% endif %}
+
+                                            <form method="POST" action="/custom-admin/toggle-admin/{{ u.id }}/" class="m-0">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-warning text-dark fw-bold">Toggle Backend Team</button>
+                                            </form>
+
+                                            <form method="POST" action="/custom-admin/close-account/{{ u.id }}/" class="m-0">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-danger fw-bold" onclick="return confirm('Delete this account?');">Delete</button>
+                                            </form>
                                         {% endif %}
                                     </td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-5">No billing profiles found in the database.</td>
+                                    <td colspan="7" class="text-center text-muted py-5">No customers found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -156,76 +198,234 @@
                 </div>
             </div>
 
-            <!-- AD MANAGEMENT TAB -->
-            <div class="tab-pane fade" id="ads">
-                
-                <div class="card shadow-sm border-0 mb-5">
-                    <div class="card-header bg-warning border-bottom py-3 px-4">
-                        <h5 class="mb-0 fw-bold text-dark">⏳ Pending Ad Applications</h5>
-                        <p class="text-muted small mb-0 mt-1">Review and approve ad applications submitted by clients.</p>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light text-muted small">
-                                    <tr>
-                                        <th class="px-4 py-3">Ad Campaign</th>
-                                        <th class="py-3">Media Asset</th>
-                                        <th class="py-3">Placement / Strategy</th>
-                                        <th class="py-3">Duration</th>
-                                        <th class="px-4 py-3 text-end">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for ad in pending_ads %}
-                                    <tr>
-                                        <td class="px-4 py-3 fw-bold text-dark">{{ ad.ad_content }}</td>
-                                        <td class="py-3">
-                                            <a href="{{ ad.ad_file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View Asset</a>
-                                        </td>
-                                        <td class="py-3">
-                                            <span class="badge bg-light text-dark border">{{ ad.get_placement_display|default:ad.placement }}</span>
-                                        </td>
-                                        <td class="py-3 small text-muted">
-                                            {{ ad.start_date|date:"M d" }} to {{ ad.end_date|date:"M d" }}
-                                        </td>
-                                        <td class="px-4 py-3 text-end">
-                                            <form method="POST" action="/custom-admin/ads/approve/{{ ad.id }}/" class="m-0">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-sm btn-success fw-bold px-3 shadow-sm">Approve & Push Live</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% empty %}
-                                    <tr><td colspan="5" class="text-center text-muted py-5">No applications awaiting approval.</td></tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+            <div class="tab-pane fade" id="application">
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-4 h-100" style="border-left: 4px solid #0dcaf0;">
+                            <h5 class="fw-bold text-dark mb-1">Latest Version</h5>
+                            <div class="display-6 fw-bold text-info my-2">{{ app_version }}</div>
+                            <p class="text-muted small mb-3">System is up to date.</p>
+                            <form method="POST" action="/custom-admin/check-updates/" class="mt-auto w-100">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-info w-100">Check for Updates</button>
+                            </form>
                         </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-4 h-100" style="border-left: 4px solid #198754;">
+                            <h5 class="fw-bold text-dark mb-3">Health Monitoring</h5>
+                            <div class="d-flex justify-content-between mb-2 small"><span class="text-muted">Server Uptime</span><span class="fw-bold text-success">{{ uptime_percentage }}</span></div>
+                            <div class="d-flex justify-content-between mb-2 small">
+                                <span class="text-muted">Database Status</span>
+                                <span class="fw-bold {% if db_status == 'Connected' %}text-success{% else %}text-danger{% endif %}">{{ db_status }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 small"><span class="text-muted">API Latency</span><span class="fw-bold text-warning">{{ api_latency }}ms</span></div>
+                            <a href="/custom-admin/logs/" target="_blank" class="btn btn-sm btn-outline-success mt-auto w-100">View Detailed Logs</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-4 h-100" style="border-left: 4px solid #6f42c1;">
+                            <h5 class="fw-bold text-dark mb-1">Version Control</h5>
+                            <p class="text-muted small mb-3">Manage deployments and rollback instances.</p>
+                            <div class="mt-auto d-grid gap-2">
+                                <form method="POST" action="/custom-admin/rollback/" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Rollback to v2.4.0</button>
+                                </form>
+                                <a href="/custom-admin/configs/" class="btn btn-sm btn-outline-secondary w-100">Manage Configurations</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="card p-4 shadow-sm border-0 h-100">
+                            <h6 class="fw-bold mb-3">System Performance (CPU)</h6>
+                            <canvas id="sysPerformanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card p-4 shadow-sm border-0 h-100">
+                            <h6 class="fw-bold mb-3">API Traffic (Requests/min)</h6>
+                            <canvas id="apiTrafficChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom py-3 px-4">
+                        <h5 class="mb-0 fw-bold text-dark">Customer Feedback & Support</h5>
+                    </div>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light text-muted small">
+                                <tr>
+                                    <th class="px-4 py-3">User</th>
+                                    <th>Rating</th>
+                                    <th>Message</th>
+                                    <th class="text-end px-4">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fb in feedbacks %}
+                                <tr>
+                                    <td class="px-4 py-3 fw-bold text-dark">{{ fb.user.username }}</td>
+                                    <td><span class="text-warning fw-bold">{{ fb.rating }} ★</span></td>
+                                    <td class="small text-muted text-truncate" style="max-width: 300px;">{{ fb.text }}</td>
+                                    <td class="text-end px-4 small text-muted">{{ fb.created_at|date:"M d, Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">No recent feedback or support tickets found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="ads">
+                <h5 class="fw-bold text-dark mb-3">1. Ad Registration / Queue</h5>
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100" style="border-top: 4px solid #ffc107;">
+                            <div class="card-header bg-white border-bottom py-3 px-4">
+                                <h6 class="mb-0 fw-bold text-dark">Campaign Configuration</h6>
+                                <p class="text-muted small mb-0 mt-1">Register a new advertisement campaign manually.</p>
+                            </div>
+                            <div class="card-body p-4">
+                                <form method="POST" action="/custom-admin/ads/launch/" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-12">
+                                            <label class="form-label fw-bold text-dark small">Ad Title / Content</label>
+                                            <input type="text" class="form-control bg-light" name="ad_content" placeholder="e.g., Q3 Tech Summit" required>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label fw-bold text-dark small">Upload Asset (Photo / Video)</label>
+                                            <input type="file" class="form-control bg-light" name="ad_file" accept="image/*,video/*" required>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold text-dark small">Placement</label>
+                                            <select class="form-select bg-light" name="configure_services" required>
+                                                <option value="dashboard_top">Dashboard Top Banner</option>
+                                                <option value="sidebar_right">Sidebar Advertisement</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold text-dark small">Strategy</label>
+                                            <select class="form-select bg-light" name="manage_services" required>
+                                                <option value="fixed_term">Fixed Time Duration</option>
+                                                <option value="ppc">Pay Per Click (PPC)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold text-dark small">Start Date</label>
+                                            <input type="date" class="form-control bg-light" name="start_date" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold text-dark small">End Date</label>
+                                            <input type="date" class="form-control bg-light" name="end_date" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold text-dark small">Time</label>
+                                            <input type="time" class="form-control bg-light" name="running_time" required>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-warning text-dark fw-bold w-100 shadow-sm py-2">Submit & Push to Queue</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-white border-bottom py-3 px-4">
+                                <h6 class="mb-0 fw-bold text-dark">Pending Approvals</h6>
+                                <p class="text-muted small mb-0 mt-1">Review and approve applications.</p>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light text-muted small">
+                                            <tr>
+                                                <th class="px-4 py-3">Ad Campaign</th>
+                                                <th class="py-3">Media Asset</th>
+                                                <th class="py-3">Placement</th>
+                                                <th class="py-3">Duration</th>
+                                                <th class="px-4 py-3 text-end">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for ad in pending_ads %}
+                                            <tr>
+                                                <td class="px-4 py-3 fw-bold text-dark">{{ ad.ad_content }}</td>
+                                                <td class="py-3"><a href="{{ ad.ad_file.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">View</a></td>
+                                                <td class="py-3"><span class="badge bg-light text-dark border">{{ ad.get_placement_display|default:ad.placement }}</span></td>
+                                                <td class="py-3 small text-muted">{{ ad.start_date|date:"M d" }} to {{ ad.end_date|date:"M d" }}</td>
+                                                <td class="px-4 py-3 text-end">
+                                                    <form method="POST" action="/custom-admin/ads/approve/{{ ad.id }}/" class="m-0">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-success fw-bold px-3 shadow-sm">Approve</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr><td colspan="5" class="text-center text-muted py-5">No applications awaiting approval.</td></tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white border-bottom py-3 px-4">
+                        <h5 class="mb-0 fw-bold text-dark">2. Payment Verification</h5>
+                    </div>
+                    <div class="card-body p-5 text-center text-muted">
+                        Pending verification gateway logic.
                     </div>
                 </div>
 
                 <div class="card shadow-sm border-0 mb-5">
                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center px-4">
-                        <div><h5 class="mb-0 fw-bold text-dark">📊 Live Ad Performance (Webhook Tracking)</h5></div>
+                        <div><h5 class="mb-0 fw-bold text-dark">3. Live Ad Performance</h5></div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light text-muted small"><tr><th class="px-4 py-3">Ad Campaign</th><th class="py-3">Performance</th><th class="py-3">Engagement Time</th><th class="py-3">Location</th><th class="px-4 py-3 text-end">Status</th></tr></thead>
+                            <thead class="table-light text-muted small"><tr><th class="px-4 py-3">Ad Campaign</th><th class="py-3">Performance</th><th class="py-3">Engagement Time</th><th class="py-3">Location (IP)</th><th class="px-4 py-3 text-end">Status</th></tr></thead>
                             <tbody>
                                 {% for ad in active_ads %}
                                 <tr>
                                     <td class="px-4 py-3 fw-bold text-dark">{{ ad.ad_content }}</td>
                                     <td class="py-3"><span class="text-success fw-bold">{{ ad.clicks }} Clicks</span> / <span class="text-muted">{{ ad.impressions }} Views</span></td>
-                                    <td class="py-3 small"><div class="fw-bold">{{ ad.avg_duration|floatformat:1 }}s avg duration</div><div class="text-muted">Last event: {{ ad.last_event|date:"Y-m-d\TH:i:s\Z" }}</div></td>
+                                    <td class="py-3 small"><div class="fw-bold">{{ ad.avg_duration|floatformat:1 }}s avg duration</div></td>
                                     <td class="py-3 small text-muted">📍 {{ request.META.REMOTE_ADDR|default:"Mumbai, Maharashtra" }}</td>
                                     <td class="px-4 py-3 text-end"><span class="badge bg-success shadow-sm px-2 py-1">Active</span></td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="5" class="text-center text-muted py-5">No active ads are currently being tracked.</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted py-4">No active ads.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4 p-4">
+                    <h5 class="mb-4 fw-bold text-dark">4. Detailed Metrics</h5>
+                    <div class="row g-4">
+                        <div class="col-md-4"><div class="card p-3 shadow-sm border-0"><h6 class="fw-bold">Total Registered Ads</h6><canvas id="adTotalChart"></canvas></div></div>
+                        <div class="col-md-4"><div class="card p-3 shadow-sm border-0"><h6 class="fw-bold">Active vs Inactive</h6><canvas id="adActiveChart"></canvas></div></div>
+                        <div class="col-md-4"><div class="card p-3 shadow-sm border-0"><h6 class="fw-bold">Frequency Trends</h6><canvas id="adFreqChart"></canvas></div></div>
                     </div>
                 </div>
             </div>
@@ -236,14 +436,79 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const userCtx = document.getElementById('userGrowthChart');
-        if(userCtx) {
-            new Chart(userCtx.getContext('2d'), { type: 'line', data: { labels: {{ chart_labels|safe }}, datasets: [{ label: 'New Users', data: {{ chart_data|safe }}, borderColor: '#0d6efd', fill: true, tension: 0.4 }] }});
+        function createChart(ctxId, type, label, labels, data, bgColor, borderColor) {
+            const ctx = document.getElementById(ctxId);
+            if (ctx) {
+                new Chart(ctx.getContext('2d'), {
+                    type: type,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: label,
+                            data: data,
+                            backgroundColor: bgColor,
+                            borderColor: borderColor,
+                            borderWidth: 2,
+                            fill: type === 'line' ? true : false,
+                            tension: 0.4
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } } }
+                });
+            }
         }
+        
+        const dynamicLabels = {{ chart_labels|safe|default:"[]" }};
+        const dynamicData = {{ chart_data|safe|default:"[]" }};
+        const dynamicPaymentLabels = {{ payment_labels|safe|default:"[]" }};
+        const dynamicPaymentData = {{ payment_data|safe|default:"[]" }};
+        const dynamicAcquisitionData = {{ acquisition_data|safe|default:"[]" }};
+        const dynamicUtilizationData = {{ utilization_data|safe|default:"[]" }};
+        
+        const adTrendLabels = {{ ad_trend_labels|safe|default:"[]" }};
+        const adTrendData = {{ ad_trend_data|safe|default:"[]" }};
 
-        const revCtx = document.getElementById('revenueChart');
-        if(revCtx) {
-            new Chart(revCtx.getContext('2d'), { type: 'bar', data: { labels: {{ payment_labels|safe }}, datasets: [{ label: 'Revenue (INR)', data: {{ payment_data|safe }}, backgroundColor: '#198754', borderRadius: 4 }] }});
+        const perfLabels = {{ perf_time_labels|safe|default:"[]" }};
+        const cpuData = {{ cpu_usage_data|safe|default:"[]" }};
+        const apiTrafficData = {{ api_traffic_data|safe|default:"[]" }};
+
+        createChart('growthChart', 'line', 'Customers', dynamicLabels, dynamicData, 'rgba(13, 110, 253, 0.1)', '#0d6efd');
+        createChart('acquisitionChart', 'bar', 'Subscriptions', dynamicPaymentLabels, dynamicAcquisitionData, '#198754', '#198754');
+        createChart('utilizationChart', 'doughnut', 'Active vs Inactive', ['Active Utilization', 'Inactive/Expired'], dynamicUtilizationData, ['#0dcaf0', '#dc3545'], '#fff');
+        createChart('revenueChart', 'line', 'Revenue (INR)', dynamicPaymentLabels, dynamicPaymentData, 'rgba(255, 193, 7, 0.1)', '#ffc107');
+        
+        createChart('adTotalChart', 'bar', 'Total Ads', adTrendLabels, adTrendData, '#6f42c1', '#6f42c1');
+        createChart('adActiveChart', 'pie', 'Status', ['Active', 'Closed'], {{ ad_active_data|safe|default:"[]" }}, ['#198754', '#6c757d'], '#fff');
+        createChart('adFreqChart', 'line', 'Frequency', adTrendLabels, adTrendData, 'rgba(13, 110, 253, 0.1)', '#0d6efd');
+
+        createChart('sysPerformanceChart', 'line', 'CPU %', perfLabels, cpuData, 'rgba(111, 66, 193, 0.1)', '#6f42c1');
+        createChart('apiTrafficChart', 'bar', 'Requests', perfLabels, apiTrafficData, 'rgba(25, 135, 84, 0.1)', '#198754');
+
+        const customerFilter = document.getElementById('customerFilter');
+        if (customerFilter) {
+            customerFilter.addEventListener('change', function() {
+                const filterValue = this.value;
+                const rows = document.querySelectorAll('.customer-row');
+                
+                rows.forEach(row => {
+                    const status = row.getAttribute('data-status');
+                    const payment = row.getAttribute('data-payment');
+                    
+                    if (filterValue === 'all') {
+                        row.style.display = '';
+                    } else if (filterValue === 'active' && status === 'active') {
+                        row.style.display = '';
+                    } else if (filterValue === 'inactive' && status === 'inactive') {
+                        row.style.display = '';
+                    } else if (filterValue === 'subscribed' && payment === 'paid') {
+                        row.style.display = '';
+                    } else if (filterValue === 'unpaid' && payment === 'unpaid') {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
         }
     </script>
 </body>
