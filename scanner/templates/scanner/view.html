@@ -17,8 +17,7 @@
         .contact-checkbox { width: 1.5rem; height: 1.5rem; cursor: pointer; }
         .star { cursor: pointer; color: #ffc107; transition: color 0.2s; }
         .star:hover { opacity: 0.8; }
- 
-        /* ── Multi-upload drop zone ── */
+
         #dropZone {
             border: 2px dashed #0d6efd;
             border-radius: 12px;
@@ -32,26 +31,52 @@
             justify-content: center;
         }
         #dropZone.dragover { background: #dce8ff; }
-        #previewGrid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        #previewGrid img {
-            width: 72px; height: 72px;
+
+        #previewList { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .preview-item img {
+            width: 64px;
+            height: 64px;
             object-fit: cover;
             border-radius: 6px;
             border: 2px solid #0d6efd;
+            flex-shrink: 0;
         }
-        #previewGrid .preview-wrap { position: relative; display: inline-block; }
-        #previewGrid .remove-btn {
-            position: absolute; top: -6px; right: -6px;
-            background: #dc3545; color: #fff;
-            border: none; border-radius: 50%;
-            width: 18px; height: 18px;
-            font-size: 10px; line-height: 18px;
-            text-align: center; cursor: pointer; padding: 0;
+        .preview-item .file-name {
+            flex: 1;
+            font-size: 0.82rem;
+            color: #444;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 160px;
+        }
+        .side-toggle { display: flex; gap: 6px; flex-shrink: 0; }
+        .side-toggle .btn { font-size: 0.75rem; padding: 4px 10px; }
+        .side-toggle .btn.active-front { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+        .side-toggle .btn.active-back  { background: #6f42c1; color: #fff; border-color: #6f42c1; }
+        .preview-item .remove-item-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            flex-shrink: 0;
+            padding: 0 4px;
         }
     </style>
 </head>
 <body>
- 
+
 <nav class="bg-dark text-light py-2 shadow-sm border-bottom border-dark sticky-top">
     <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2 small">
         <div class="d-flex align-items-center gap-2">
@@ -69,18 +94,17 @@
         </div>
     </div>
 </nav>
- 
+
 <main class="container py-4 flex-grow-1">
- 
+
     <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2 pb-3 border-bottom">
         <a href="/chat/" class="btn btn-outline-primary">Ask AI</a>
         <a href="/export/" class="btn btn-outline-success">Export CSV</a>
-        <!-- Scan Card now opens the multi-upload modal -->
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#multiScanModal">📷 Scan Card(s)</button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#multiScanModal">📷 Scan Business Cards</button>
         <a href="/settings/" class="btn btn-secondary">Settings</a>
         <a href="/logout/" class="btn btn-danger text-white fw-bold">Log Out</a>
     </div>
- 
+
     <!-- Metric cards -->
     <div class="row g-4 mb-5">
         <div class="col-md-3">
@@ -108,7 +132,7 @@
             </div>
         </div>
     </div>
- 
+
     <!-- Search / filter bar -->
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
         <h3 class="fw-bold text-dark mb-0">Search query</h3>
@@ -124,7 +148,7 @@
             <button class="btn btn-outline-primary fw-bold shadow-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#addDomainModal">+ Add Tag</button>
         </div>
     </div>
- 
+
     <!-- Companies / Domains grid -->
     <div class="row g-4 mb-5">
         {% for company in companies %}
@@ -157,7 +181,7 @@
         </div>
         {% endif %}
     </div>
- 
+
     <!-- Opportunities -->
     <div class="row mb-5">
         <div class="col-12">
@@ -181,7 +205,7 @@
             </div>
         </div>
     </div>
- 
+
     <!-- Word cloud -->
     <div class="row mb-5">
         <div class="col-12">
@@ -205,7 +229,7 @@
             </div>
         </div>
     </div>
- 
+
     <!-- Pending queue -->
     {% if pending_cards %}
     <h3 class="fw-bold text-warning mb-4">⏳ Verification Queue</h3>
@@ -245,7 +269,7 @@
         {% endfor %}
     </div>
     {% endif %}
- 
+
     <!-- Approved contacts -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-success mb-0">List of Contacts</h3>
@@ -293,9 +317,9 @@
         </div>
         {% endfor %}
     </div>
- 
+
 </main>
- 
+
 <footer class="bg-dark text-light py-5 mt-auto border-top border-secondary">
     <div class="container text-center">
         <h5 class="mb-2 fw-bold">MxSense Telingent Solutions Pvt Ltd</h5>
@@ -305,10 +329,8 @@
         </p>
     </div>
 </footer>
- 
-<!-- ══════════════════════════════════════════════════════════
-     MULTI-SCAN MODAL
-═══════════════════════════════════════════════════════════ -->
+
+<!-- ══ Multi-Scan Modal ══ -->
 <div class="modal fade" id="multiScanModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -317,26 +339,22 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
- 
-                <!-- Drop zone -->
+
                 <div id="dropZone">
                     <span style="font-size:2rem;">📂</span>
                     <p class="mb-1 fw-bold text-primary mt-2">Drag & drop images here</p>
-                    <p class="text-muted small mb-2">or click to browse — select multiple files at once</p>
-                    <input type="file" id="multiFileInput" accept="image/*" multiple style="display:none;">
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('multiFileInput').click()">Browse Files</button>
+                    <p class="text-muted small mb-2">or tap to browse — supports camera on mobile</p>
+                    <input type="file" id="multiFileInput" accept="image/*" multiple style="display:none;" capture="environment">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('multiFileInput').click()">Browse / Camera</button>
                 </div>
- 
-                <!-- Preview grid -->
-                <div id="previewGrid"></div>
- 
-                <!-- Note field -->
+
+                <div id="previewList"></div>
+
                 <div class="mt-3">
                     <label class="form-label fw-bold small text-muted">Optional note (applied to all cards)</label>
                     <input type="text" id="multiNote" class="form-control" placeholder="e.g. Met at TechConf 2025">
                 </div>
- 
-                <!-- Status -->
+
                 <div id="uploadStatus" class="mt-3"></div>
             </div>
             <div class="modal-footer">
@@ -348,7 +366,7 @@
         </div>
     </div>
 </div>
- 
+
 <!-- ══ Add Domain Modal ══ -->
 <div class="modal fade" id="addDomainModal" tabindex="-1">
     <div class="modal-dialog">
@@ -362,7 +380,7 @@
         </div>
     </div>
 </div>
- 
+
 <!-- ══ Share Modal ══ -->
 <div class="modal fade" id="shareModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -377,7 +395,7 @@
         </div>
     </div>
 </div>
- 
+
 <!-- ══ Help & Support Modal ══ -->
 <div class="modal fade" id="helpSupportModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -397,17 +415,15 @@
         </div>
     </div>
 </div>
- 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ── Clock ──
 function updateClock() {
     document.getElementById('liveDateTime').textContent =
         new Date().toLocaleDateString('en-IN', {weekday:'short',year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 setInterval(updateClock, 1000); updateClock();
- 
-// ── Stars ──
+
 document.querySelectorAll('.star').forEach(star => {
     star.addEventListener('click', function () {
         const val = parseInt(this.dataset.val);
@@ -415,11 +431,10 @@ document.querySelectorAll('.star').forEach(star => {
         document.querySelectorAll('.star').forEach(s => s.textContent = parseInt(s.dataset.val) <= val ? '★' : '☆');
     });
 });
- 
-// ── Search / filter ──
-const searchInput  = document.getElementById('searchInput');
+
+const searchInput   = document.getElementById('searchInput');
 const companyFilter = document.getElementById('companyFilter');
-const allCards     = document.querySelectorAll('.approved-card-item');
+const allCards      = document.querySelectorAll('.approved-card-item');
 function filterContacts() {
     const q    = searchInput.value.trim().toLowerCase();
     const type = companyFilter.value;
@@ -430,10 +445,9 @@ function filterContacts() {
 }
 searchInput.addEventListener('input', filterContacts);
 companyFilter.addEventListener('change', filterContacts);
- 
-// ── Bulk share ──
-const bulkShareBtn    = document.getElementById('bulkShareBtn');
-const selectedCount   = document.getElementById('selectedCount');
+
+const bulkShareBtn  = document.getElementById('bulkShareBtn');
+const selectedCount = document.getElementById('selectedCount');
 document.querySelectorAll('.contact-checkbox').forEach(cb => {
     cb.addEventListener('change', () => {
         const n = document.querySelectorAll('.contact-checkbox:checked').length;
@@ -463,54 +477,95 @@ document.getElementById('shareModal').addEventListener('show.bs.modal', e => {
         `Contact Info: ${b.dataset.name}`
     );
 });
- 
-// ════════════════════════════════════════════════
-// MULTI-SCAN UPLOAD
-// ════════════════════════════════════════════════
+
 const dropZone      = document.getElementById('dropZone');
 const fileInput     = document.getElementById('multiFileInput');
-const previewGrid   = document.getElementById('previewGrid');
+const previewList   = document.getElementById('previewList');
 const uploadAllBtn  = document.getElementById('uploadAllBtn');
 const fileCountSpan = document.getElementById('fileCount');
 const uploadStatus  = document.getElementById('uploadStatus');
- 
-let selectedFiles = [];   // DataTransfer-style array
- 
+
+let selectedFiles = [];
+
 function syncUI() {
     fileCountSpan.textContent = selectedFiles.length;
     uploadAllBtn.disabled     = selectedFiles.length === 0;
 }
- 
+
 function renderPreviews() {
-    previewGrid.innerHTML = '';
-    selectedFiles.forEach((file, idx) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'preview-wrap';
+    previewList.innerHTML = '';
+    selectedFiles.forEach((entry, idx) => {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+
         const img = document.createElement('img');
-        img.src = URL.createObjectURL(file);
-        const btn = document.createElement('button');
-        btn.className = 'remove-btn';
-        btn.textContent = '×';
-        btn.title = 'Remove';
-        btn.onclick = () => { selectedFiles.splice(idx, 1); renderPreviews(); syncUI(); };
-        wrap.appendChild(img);
-        wrap.appendChild(btn);
-        previewGrid.appendChild(wrap);
+        img.src = URL.createObjectURL(entry.file);
+
+        const name = document.createElement('span');
+        name.className = 'file-name';
+        name.title = entry.file.name;
+        name.textContent = entry.file.name;
+
+        const toggle = document.createElement('div');
+        toggle.className = 'side-toggle';
+
+        const frontBtn = document.createElement('button');
+        frontBtn.type = 'button';
+        frontBtn.textContent = '🔵 Front';
+        frontBtn.className = 'btn btn-sm btn-outline-primary' + (entry.side === 'front' ? ' active-front' : '');
+
+        const backBtn = document.createElement('button');
+        backBtn.type = 'button';
+        backBtn.textContent = '🟣 Back';
+        backBtn.className = 'btn btn-sm btn-outline-secondary' + (entry.side === 'back' ? ' active-back' : '');
+
+        frontBtn.addEventListener('click', () => {
+            selectedFiles[idx].side = 'front';
+            frontBtn.className = 'btn btn-sm btn-outline-primary active-front';
+            backBtn.className  = 'btn btn-sm btn-outline-secondary';
+        });
+        backBtn.addEventListener('click', () => {
+            selectedFiles[idx].side = 'back';
+            backBtn.className  = 'btn btn-sm btn-outline-secondary active-back';
+            frontBtn.className = 'btn btn-sm btn-outline-primary';
+        });
+
+        toggle.appendChild(frontBtn);
+        toggle.appendChild(backBtn);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-item-btn';
+        removeBtn.title = 'Remove';
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => {
+            selectedFiles.splice(idx, 1);
+            renderPreviews();
+            syncUI();
+        });
+
+        item.appendChild(img);
+        item.appendChild(name);
+        item.appendChild(toggle);
+        item.appendChild(removeBtn);
+        previewList.appendChild(item);
     });
     syncUI();
 }
- 
+
 function addFiles(newFiles) {
     Array.from(newFiles).forEach(f => {
-        if (f.type.startsWith('image/')) selectedFiles.push(f);
+        if (f.type.startsWith('image/')) {
+            selectedFiles.push({ file: f, side: 'front' });
+        }
     });
     renderPreviews();
 }
- 
-// Click to browse
+
 fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
- 
-// Drag & drop
+
+dropZone.addEventListener('click', e => {
+    if (e.target.tagName !== 'BUTTON') fileInput.click();
+});
 dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
@@ -518,24 +573,26 @@ dropZone.addEventListener('drop', e => {
     dropZone.classList.remove('dragover');
     addFiles(e.dataTransfer.files);
 });
- 
-// Upload
+
 uploadAllBtn.addEventListener('click', async () => {
     if (!selectedFiles.length) return;
- 
-    uploadAllBtn.disabled   = true;
+
+    uploadAllBtn.disabled    = true;
     uploadAllBtn.textContent = '⏳ Uploading...';
     uploadStatus.innerHTML   = '';
- 
+
     const formData = new FormData();
-    selectedFiles.forEach(f => formData.append('image', f));
+    selectedFiles.forEach(entry => {
+        formData.append('image', entry.file);
+        formData.append('side', entry.side);
+    });
     formData.append('manual_note', document.getElementById('multiNote').value);
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
- 
+
     try {
-        const res  = await fetch(window.location.pathname, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const res  = await fetch('/', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await res.json();
- 
+
         if (data.error) {
             uploadStatus.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
         } else {
@@ -551,13 +608,11 @@ uploadAllBtn.addEventListener('click', async () => {
     } catch (err) {
         uploadStatus.innerHTML = `<div class="alert alert-danger">Upload failed: ${err.message}</div>`;
     } finally {
-        uploadAllBtn.disabled   = false;
-        uploadAllBtn.innerHTML  = `⬆️ Upload All (<span id="fileCount">${selectedFiles.length}</span>)`;
-        fileCountSpan = document.getElementById('fileCount'); // re-bind after innerHTML reset
+        uploadAllBtn.disabled  = false;
+        uploadAllBtn.innerHTML = `⬆️ Upload All (<span id="fileCount">${selectedFiles.length}</span>)`;
     }
 });
- 
-// Reset modal state when closed
+
 document.getElementById('multiScanModal').addEventListener('hidden.bs.modal', () => {
     selectedFiles = [];
     renderPreviews();
@@ -567,4 +622,3 @@ document.getElementById('multiScanModal').addEventListener('hidden.bs.modal', ()
 </script>
 </body>
 </html>
- 

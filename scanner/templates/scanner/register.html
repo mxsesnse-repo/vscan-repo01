@@ -26,7 +26,6 @@
     <div class="card shadow-lg full-screen-card p-5 my-3">
         <div class="row h-100 align-items-center">
             
-            <!-- Left Side: Branding / Marketing -->
             <div class="col-lg-6 d-none d-lg-flex flex-column justify-content-center text-center px-5">
                 <h1 class="display-4 fw-bold text-primary mb-3">📇 AI Card Scanner</h1>
                 <p class="lead text-muted mb-4">
@@ -45,7 +44,6 @@
                 </ul>
             </div>
 
-            <!-- Right Side: Signup Form -->
             <div class="col-lg-6">
                 <div class="mx-auto" style="max-width: 480px;">
                     <h2 class="fw-bold text-center mb-2 text-primary">Create Account</h2>
@@ -108,7 +106,6 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
 
-                // Get the raw text first in case it's a 500 HTML error page
                 const responseText = await signupResponse.text();
 
                 let data;
@@ -120,16 +117,26 @@
                 }
 
                 if (data.error) {
-                    alert('Signup error: ' + data.error);
+                    let errorMessage = data.error + '\n\n';
+                    
+                    if (data.field_errors) {
+                        for (let field in data.field_errors) {
+                            errorMessage += `${field.toUpperCase()}: ${data.field_errors[field].join(', ')}\n`;
+                        }
+                    }
+                    
+                    alert(errorMessage);
                     btn.disabled = false;
                     btn.innerHTML = '💳 Sign Up & Pay ₹499';
                     return;
                 }
 
-                if (data.order_id) {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else if (data.order_id) {
                     openRazorpay(data);
                 } else {
-                    window.location.href = data.redirect || '/dashboard/';
+                    window.location.href = '/dashboard/';
                 }
             } catch (err) {
                 alert('Detailed Error: ' + err.message);
@@ -151,7 +158,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-CSRFToken': '{{ csrf_token }}'
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                         },
                         body: new URLSearchParams({
                             razorpay_order_id: response.razorpay_order_id,

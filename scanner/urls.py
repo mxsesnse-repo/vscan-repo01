@@ -3,13 +3,10 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
-    # ==================== AUTHENTICATION ====================
     path('login/', auth_views.LoginView.as_view(template_name='scanner/login.html'), name='login'),
     path('logout/', views.logout_user, name='logout'),
     path('register/', views.register_user, name='register'),
-
-    # ==================== MAIN APP ====================
-    path('', views.scan_card, name='scan_card'),
+    path('', views.dashboard, name='root'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('edit/<int:card_id>/', views.edit_card, name='edit_card'),
     path('chat/', views.chat_view, name='chat'),
@@ -19,23 +16,14 @@ urlpatterns = [
     path('company/<int:company_id>/', views.company_network, name='company_network'),
     path('domain/<int:domain_id>/', views.domain_network, name='domain_network'),
     path('export/', views.export_csv, name='export_csv'),
-
-    # ==================== SETTINGS / PROFILE ====================
     path('settings/', views.settings_view, name='settings'),
     path('settings/delete-domain/<int:domain_id>/', views.delete_domain, name='delete_domain'),
     path('add-domain/', views.add_domain, name='add_domain'),
     path('submit-feedback/', views.submit_feedback, name='submit_feedback'),
-
-    # ==================== ADVERTISEMENTS ====================
     path('submit-ad/', views.launch_ad, name='launch_ad'),
-
-    # ==================== PAYMENTS ====================
     path('payment/initiate/', views.initiate_payment_view, name='initiate_payment'),
     path('verify-payment/', views.verify_payment, name='verify_payment'),
     path('payment/webhook/', views.razorpay_webhook_placeholder, name='razorpay_webhook'),
-
-    # ==================== ADMIN PORTAL ====================
-    path('custom-admin/login/', views.admin_login_view, name='admin_login'),
     path('custom-admin/', views.admin_dashboard, name='admin_dashboard'),
     path('custom-admin/close-account/<int:user_id>/', views.close_account, name='close_account'),
     path('custom-admin/toggle-admin/<int:user_id>/', views.toggle_admin, name='toggle_admin'),
@@ -49,19 +37,13 @@ urlpatterns = [
     path('custom-admin/rollback/', views.rollback_version, name='rollback_version'),
     path('custom-admin/configs/', views.manage_configs, name='manage_configs'),
     path('custom-admin/logs/', views.view_logs, name='view_logs'),
-
-    # ---- Billing: plans ----
     path('custom-admin/create-plan/', views.create_plan, name='create_plan'),
     path('custom-admin/toggle-plan/<int:plan_id>/', views.toggle_plan, name='toggle_plan'),
     path('custom-admin/edit-plan/<int:plan_id>/', views.edit_plan, name='edit_plan'),
     path('custom-admin/assign-plan/<int:user_id>/', views.assign_plan, name='assign_plan'),
-
-    # ---- Billing: transactions ----
     path('custom-admin/verify-transaction/<int:txn_id>/', views.verify_transaction, name='verify_transaction'),
     path('custom-admin/retry-payment/<int:txn_id>/', views.retry_payment, name='retry_payment'),
     path('custom-admin/send-invoice/<int:txn_id>/', views.send_invoice, name='send_invoice'),
-
-    # ---- Configuration ----
     path('custom-admin/save-general-settings/', views.save_general_settings, name='save_general_settings'),
     path('custom-admin/save-payment-config/', views.save_payment_config, name='save_payment_config'),
     path('custom-admin/save-email-config/', views.save_email_config, name='save_email_config'),
