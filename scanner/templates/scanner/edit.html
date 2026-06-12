@@ -15,7 +15,7 @@
                         <h3 class="fw-bold text-dark">Edit Contact Record</h3>
                     </div>
                     <div class="card-body p-4">
-                        <form method="POST">
+                        <form method="POST" action="{% url 'edit_card' card.id %}">
                             {% csrf_token %}
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -111,7 +111,7 @@
                             </div>
                             <div class="mt-4 d-flex gap-2">
                                 <button type="submit" class="btn btn-primary px-4">Save Changes</button>
-                                <a href="/dashboard/" class="btn btn-outline-secondary px-4">Cancel</a>
+                                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary px-4">Cancel</a>
                             </div>
                         </form>
                     </div>

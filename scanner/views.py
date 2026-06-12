@@ -1,3 +1,4 @@
+
 import os
 import json
 import base64
@@ -88,31 +89,54 @@ def scan_card(request):
  
 @login_required
 def dashboard(request):
+    if request.method == 'POST':
+        images = request.FILES.getlist('image')
+        sides = request.POST.getlist('side')
+        manual_note = request.POST.get('manual_note', '')
+
+        if not images:
+            return JsonResponse({'error': 'No images provided.'}, status=400)
+
+        for idx, image in enumerate(images):
+            side = sides[idx] if idx < len(sides) else 'front'
+            note = f"[{side.upper()}] {manual_note}".strip() if manual_note else f"[{side.upper()}]"
+            card = BusinessCard.objects.create(
+                user=request.user,
+                first_name="Pending",
+                last_name="Extraction...",
+                manual_note=note,
+                card_image=image,
+                is_approved=False
+            )
+            process_business_card.delay(card.id)
+
+        return JsonResponse({'message': f'Successfully queued {len(images)} image(s) for processing!'})
+
     cards = BusinessCard.objects.filter(user=request.user, is_approved=True).order_by('-scanned_at')
     pending_cards = BusinessCard.objects.filter(user=request.user, is_approved=False)
     companies = Company.objects.filter(user=request.user).order_by('name')
     tasks = Task.objects.filter(user=request.user).order_by('due_date')
     domains = Domain.objects.filter(user=request.user).order_by('name')
     opportunities = Opportunity.objects.filter(user=request.user).select_related('contact')
- 
+
     total_contacts = cards.count()
     total_companies = companies.count()
     pending_tasks = tasks.filter(is_completed=False).count()
- 
+
     entities = KnowledgeEntity.objects.filter(created_by=request.user)
     relationships = KnowledgeRelationship.objects.filter(created_by=request.user)
- 
+
     nodes_list = [{"id": entity.id, "label": entity.display_name, "group": entity.entity_type} for entity in entities]
-    
+
     edges_list = [{
         "from": rel.source_entity_id,
         "to": rel.target_entity_id,
         "label": rel.relationship_type.replace("_", " ").title()
     } for rel in relationships]
- 
+
     graph_nodes_json = json.dumps(nodes_list)
     graph_edges_json = json.dumps(edges_list)
- 
+
     topic_filter = request.GET.get('topic_filter', 'company')
     if topic_filter == 'company':
         notes = cards.values_list('company_name', flat=True)
@@ -124,21 +148,21 @@ def dashboard(request):
         notes = cards.values_list('domains__name', flat=True)
     else:
         notes = cards.values_list('manual_note', flat=True)
- 
+
     text = " ".join(filter(None, notes)).lower()
     words = re.findall(r'\b[a-z]{4,}\b', text)
     stop_words = {'that', 'this', 'with', 'from', 'have', 'were', 'they', 'will', 'your', 'about', 'and', 'the'}
     filtered_words = [w for w in words if w not in stop_words]
     bag_of_words = Counter(filtered_words).most_common(40)
- 
+
     max_count = bag_of_words[0][1] if bag_of_words else 1
     bag_of_words_scaled = [(word, int((count / max_count) * 28) + 12) for word, count in bag_of_words]
- 
+
     try:
         active_subscriptions = 1 if request.user.billing_profile.has_paid and request.user.billing_profile.is_active else 0
     except BillingProfile.DoesNotExist:
         active_subscriptions = 0
- 
+
     context = {
         'cards': cards,
         'companies': companies,
@@ -149,14 +173,14 @@ def dashboard(request):
         'pending_tasks': pending_tasks,
         'domains': domains,
         'opportunities': opportunities,
-        'graph_nodes_json': graph_nodes_json, 
+        'graph_nodes_json': graph_nodes_json,
         'graph_edges_json': graph_edges_json,
         'bag_of_words': bag_of_words_scaled,
         'active_subscriptions': active_subscriptions,
         'current_topic_filter': topic_filter,
     }
     return render(request, 'scanner/view.html', context)
- 
+
  
 @login_required
 @require_POST
@@ -1256,4 +1280,3 @@ def demote_team_member(request, user_id):
         log_admin_action(request, f"Demoted {username} from backend team")
         messages.success(request, f"{username} has been removed from the backend team.")
     return admin_redirect('configuration')
- 

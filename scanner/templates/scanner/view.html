@@ -98,14 +98,13 @@
 <main class="container py-4 flex-grow-1">
 
     <div class="d-flex justify-content-end align-items-center mb-4 flex-wrap gap-2 pb-3 border-bottom">
-        <a href="/chat/" class="btn btn-outline-primary">Ask AI</a>
-        <a href="/export/" class="btn btn-outline-success">Export CSV</a>
+        <a href="{% url 'chat' %}" class="btn btn-outline-primary">Ask AI</a>
+        <a href="{% url 'export_csv' %}" class="btn btn-outline-success">Export CSV</a>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#multiScanModal">📷 Scan Business Cards</button>
-        <a href="/settings/" class="btn btn-secondary">Settings</a>
-        <a href="/logout/" class="btn btn-danger text-white fw-bold">Log Out</a>
+        <a href="{% url 'settings' %}" class="btn btn-secondary">Settings</a>
+        <a href="{% url 'logout' %}" class="btn btn-danger text-white fw-bold">Log Out</a>
     </div>
 
-    <!-- Metric cards -->
     <div class="row g-4 mb-5">
         <div class="col-md-3">
             <div class="card metric-card shadow-sm p-4 bg-white h-100">
@@ -133,7 +132,6 @@
         </div>
     </div>
 
-    <!-- Search / filter bar -->
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
         <h3 class="fw-bold text-dark mb-0">Search query</h3>
         <div class="d-flex gap-2 align-items-center flex-wrap">
@@ -149,7 +147,6 @@
         </div>
     </div>
 
-    <!-- Companies / Domains grid -->
     <div class="row g-4 mb-5">
         {% for company in companies %}
         <div class="col-md-4">
@@ -158,7 +155,7 @@
                     <div class="mb-3"><span style="font-size: 2rem;">🏢</span></div>
                     <h5 class="card-title fw-bold text-dark mb-1">{{ company.name }}</h5>
                     <p class="text-muted small mb-3">Company Network</p>
-                    <a href="/company/{{ company.id }}/" class="btn btn-sm btn-outline-info w-100">View Connections</a>
+                    <a href="{% url 'company_network' company.id %}" class="btn btn-sm btn-outline-info w-100">View Connections</a>
                 </div>
             </div>
         </div>
@@ -170,7 +167,7 @@
                     <div class="mb-3"><span style="font-size: 2rem;">🏷️</span></div>
                     <h5 class="card-title fw-bold text-dark mb-1">{{ domain.name }}</h5>
                     <p class="text-muted small mb-3">Domain Tags</p>
-                    <a href="/domain/{{ domain.id }}/" class="btn btn-sm btn-outline-primary w-100">View Connections</a>
+                    <a href="{% url 'domain_network' domain.id %}" class="btn btn-sm btn-outline-primary w-100">View Connections</a>
                 </div>
             </div>
         </div>
@@ -182,7 +179,6 @@
         {% endif %}
     </div>
 
-    <!-- Opportunities -->
     <div class="row mb-5">
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -206,7 +202,6 @@
         </div>
     </div>
 
-    <!-- Word cloud -->
     <div class="row mb-5">
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -230,7 +225,6 @@
         </div>
     </div>
 
-    <!-- Pending queue -->
     {% if pending_cards %}
     <h3 class="fw-bold text-warning mb-4">⏳ Verification Queue</h3>
     <div class="row g-4 mb-5">
@@ -243,7 +237,7 @@
                         {% if card.is_duplicate %}<span class="badge bg-danger">Duplicate Detected</span>{% endif %}
                     </div>
                     {% if card.company_link %}
-                    <a href="/company/{{ card.company_link.id }}/" class="text-decoration-none">
+                    <a href="{% url 'company_network' card.company_link.id %}" class="text-decoration-none">
                         <p class="text-primary small mb-3 fw-bold">🏢 {{ card.company_name }} (View Network)</p>
                     </a>
                     {% else %}
@@ -255,13 +249,13 @@
                 <div class="card-footer bg-transparent border-0 px-4 pb-4 pt-0">
                     <div class="d-flex justify-content-end gap-2">
                         {% if card.is_duplicate %}
-                        <form method="POST" action="/approve/{{ card.id }}/" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-warning px-3">Force Approve</button></form>
-                        <a href="/edit/{{ card.id }}/" class="btn btn-sm btn-primary">Merge / Update</a>
+                        <form method="POST" action="{% url 'approve_card' card.id %}" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-warning px-3">Force Approve</button></form>
+                        <a href="{% url 'edit_card' card.id %}" class="btn btn-sm btn-primary">Merge / Update</a>
                         {% else %}
-                        <form method="POST" action="/approve/{{ card.id }}/" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-success px-3">Approve Record</button></form>
-                        <a href="/edit/{{ card.id }}/" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="POST" action="{% url 'approve_card' card.id %}" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-success px-3">Approve Record</button></form>
+                        <a href="{% url 'edit_card' card.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
                         {% endif %}
-                        <form method="POST" action="/delete/{{ card.id }}/" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Trash</button></form>
+                        <form method="POST" action="{% url 'delete_card' card.id %}" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Trash</button></form>
                     </div>
                 </div>
             </div>
@@ -270,7 +264,6 @@
     </div>
     {% endif %}
 
-    <!-- Approved contacts -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-success mb-0">List of Contacts</h3>
     </div>
@@ -308,9 +301,9 @@
                             data-company="{{ card.company_name|default:'Independent' }}"
                             data-email="{{ card.email|default:'N/A' }}"
                             data-phone="{{ card.phone_number|default:'N/A' }}">Share</button>
-                        <a href="/edit/{{ card.id }}/" class="btn btn-sm btn-outline-primary">Edit</a>
-                        <form method="POST" action="/copy/{{ card.id }}/" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-secondary">Copy</button></form>
-                        <form method="POST" action="/delete/{{ card.id }}/" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Del</button></form>
+                        <a href="{% url 'edit_card' card.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <form method="POST" action="{% url 'copy_card' card.id %}" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-secondary">Copy</button></form>
+                        <form method="POST" action="{% url 'delete_card' card.id %}" class="m-0">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete permanently?');">Del</button></form>
                     </div>
                 </div>
             </div>
@@ -330,7 +323,6 @@
     </div>
 </footer>
 
-<!-- ══ Multi-Scan Modal ══ -->
 <div class="modal fade" id="multiScanModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -367,12 +359,11 @@
     </div>
 </div>
 
-<!-- ══ Add Domain Modal ══ -->
 <div class="modal fade" id="addDomainModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <div class="modal-header"><h5 class="modal-title fw-bold">Add Custom Tag</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <form method="POST" action="/add-domain/">
+            <form method="POST" action="{% url 'add_domain' %}">
                 {% csrf_token %}
                 <div class="modal-body"><input type="text" name="domain_name" class="form-control" placeholder="Tag Name" required></div>
                 <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Tag</button></div>
@@ -381,7 +372,6 @@
     </div>
 </div>
 
-<!-- ══ Share Modal ══ -->
 <div class="modal fade" id="shareModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow">
@@ -396,13 +386,12 @@
     </div>
 </div>
 
-<!-- ══ Help & Support Modal ══ -->
 <div class="modal fade" id="helpSupportModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white border-bottom-0 pb-3"><h5 class="modal-title fw-bold">❓ Help & Support</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
             <div class="modal-body p-4">
-                <form method="POST" action="/submit-feedback/">
+                <form method="POST" action="{% url 'submit_feedback' %}">
                     {% csrf_token %}
                     <div class="mb-2 fs-3 text-center" id="starContainer">
                         <span class="star" data-val="1">☆</span><span class="star" data-val="2">☆</span><span class="star" data-val="3">☆</span><span class="star" data-val="4">☆</span><span class="star" data-val="5">☆</span>
@@ -590,7 +579,7 @@ uploadAllBtn.addEventListener('click', async () => {
     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
     try {
-        const res  = await fetch('/', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const res  = await fetch('/dashboard/', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         const data = await res.json();
 
         if (data.error) {

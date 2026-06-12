@@ -20,7 +20,7 @@ from .rag_services import build_card_document, calculate_hash, chunk_text, embed
 from .vector_store import upsert_vector
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-VISION_MODEL = "moondream"
+VISION_MODEL = "llava-phi3"
 
 
 @shared_task
@@ -36,9 +36,8 @@ def process_business_card(card_id):
         img.save(buffer, format="JPEG", quality=85)
         encoded_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-        prompt = """Extract contact details from the business card image.
-You MUST return ONLY a raw JSON object. Do not wrap it in markdown. Do not add any text before or after the JSON.
-Use exactly these keys:
+        prompt = """Read the text on this business card and output the data strictly as JSON. Do not include markdown formatting, conversational text, or introductions. If a field is missing, use null.
+Use this exact JSON format:
 {
   "full_name": null,
   "designation": null,
@@ -54,7 +53,6 @@ Use exactly these keys:
             "prompt": prompt,
             "images": [encoded_image],
             "stream": False,
-            "format": "json",
         }
 
         response = requests.post(OLLAMA_URL, json=payload, timeout=600)
@@ -64,7 +62,12 @@ Use exactly these keys:
         card.raw_ai_response = ai_text
 
         clean_text = ai_text
-        json_match = re.search(r"\{.*\}", ai_text, re.DOTALL)
+        if "```json" in clean_text:
+            clean_text = clean_text.split("```json")[1].split("```")[0]
+        elif "```" in clean_text:
+            clean_text = clean_text.split("```")[1].split("```")[0]
+
+        json_match = re.search(r"\{.*\}", clean_text, re.DOTALL)
         if json_match:
             clean_text = json_match.group(0)
 
@@ -87,11 +90,13 @@ Use exactly these keys:
 
             if first:
                 card.first_name = first
-            elif card.first_name == "Processing...":
+            elif card.first_name in ("Pending", "Processing..."):
                 card.first_name = "Unknown"
 
             if last:
                 card.last_name = last
+            elif card.last_name in ("Extraction...", "Processing..."):
+                card.last_name = ""
 
             if parsed.get("designation"):
                 card.designation = parsed.get("designation")
@@ -118,6 +123,11 @@ Use exactly these keys:
                     },
                 )
                 card.company_link = company_obj
+        else:
+            if card.first_name in ("Pending", "Processing..."):
+                card.first_name = "Unknown"
+            if card.last_name in ("Extraction...", "Processing..."):
+                card.last_name = ""
 
         card.error_message = None
         card.save()
