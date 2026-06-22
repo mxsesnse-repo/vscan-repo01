@@ -13,6 +13,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
     "https://vscan-repo01-512076090702.asia-south1.run.app",
+    "https://vscan-repo01-d4ayzz4wuq-el.a.run.app",
 ]
 
 INSTALLED_APPS = [
