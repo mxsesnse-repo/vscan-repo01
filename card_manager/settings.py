@@ -16,6 +16,12 @@ CSRF_TRUSTED_ORIGINS = [
     "https://vscan-repo01-d4ayzz4wuq-el.a.run.app",
 ]
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
