@@ -6,9 +6,7 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable is not set")
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dummy-secret-key-for-build-purposes')
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
