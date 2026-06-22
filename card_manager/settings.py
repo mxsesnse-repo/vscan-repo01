@@ -11,6 +11,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dummy-secret-key-for-build-purposes')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    "https://vscan-repo01-512076090702.asia-south1.run.app",
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -53,6 +56,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'card_manager.wsgi.application'
 
+DB_NAME=crm_db
+DB_USER=postgres
+DB_PASSWORD='K#+:M9v7e}j+t\J9'
+DB_HOST=/cloudsql/mxsweb1:asia-south1:'vscan-postgresql'
+DB_PORT='5432'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -87,15 +96,15 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = '/login'
+LOGIN_REDIRECT_URL = '/dashboard'
+LOGOUT_REDIRECT_URL = '/login'
 
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
