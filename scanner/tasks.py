@@ -1,6 +1,7 @@
 import base64
 import json
 import re
+import os
 import requests
 from io import BytesIO
 from PIL import Image
@@ -19,7 +20,8 @@ from .models import (
 from .rag_services import build_card_document, calculate_hash, chunk_text, embed_text
 from .vector_store import upsert_vector
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_URL = f"{OLLAMA_HOST}/api/generate"
 VISION_MODEL = "llava-phi3"
 
 # ---------------------------------------------------------------------------

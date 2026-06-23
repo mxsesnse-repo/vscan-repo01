@@ -1,7 +1,9 @@
 import hashlib
+import os
 import requests
 
-OLLAMA_EMBED_URL = "http://localhost:11434/api/embed"
+OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_EMBED_URL = f"{OLLAMA_HOST}/api/embed"
 EMBED_MODEL = "nomic-embed-text"
 
 

@@ -63,12 +63,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'card_manager.wsgi.application'
 
-DB_NAME=crm_db
-DB_USER=postgres
-DB_PASSWORD='K#+:M9v7e}j+t\J9'
-DB_HOST=/cloudsql/mxsweb1:asia-south1:'vscan-postgresql'
-DB_PORT='5432'
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

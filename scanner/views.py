@@ -18,12 +18,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.admin.views.decorators import staff_member_required as _staff_member_required
+from functools import partial
+
+# Redirect unauthenticated/non-staff users to our custom-styled "Backend Portal"
+# login page instead of Django's default /admin/login/.
+staff_member_required = partial(_staff_member_required, login_url='admin_login')
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth, TruncYear
@@ -328,8 +333,9 @@ def chat_view(request):
         )
 
         try:
+            ollama_host = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
             response = requests.post(
-                "http://localhost:11434/api/generate",
+                f"{ollama_host}/api/generate",
                 json={"model": "llama3.2", "prompt": prompt, "stream": False},
                 timeout=60,
             )
@@ -676,6 +682,28 @@ def razorpay_webhook_placeholder(request):
         if razorpay_order_id:
             TransactionHistory.objects.filter(order_id=razorpay_order_id).update(status='Failed')
         return JsonResponse({'status': 'Payment verification failed.', 'error': str(e)}, status=400)
+
+
+def admin_login(request):
+    # If a staff member is already logged in, send them straight to the dashboard.
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect('admin_dashboard')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None and user.is_active and user.is_staff:
+            login(request, user)
+            next_url = request.POST.get('next') or request.GET.get('next') or 'admin_dashboard'
+            return redirect(next_url)
+        elif user is not None:
+            messages.error(request, "This account does not have backend access.")
+        else:
+            messages.error(request, "Invalid username or password.")
+
+    return render(request, 'scanner/admin_login.html')
 
 
 @staff_member_required

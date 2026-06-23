@@ -24,6 +24,7 @@ urlpatterns = [
     path('payment/initiate/', views.initiate_payment_view, name='initiate_payment'),
     path('verify-payment/', views.verify_payment, name='verify_payment'),
     path('payment/webhook/', views.razorpay_webhook_placeholder, name='razorpay_webhook'),
+    path('admin-login/', views.admin_login, name='admin_login'),
     path('custom-admin/', views.admin_dashboard, name='admin_dashboard'),
     path('custom-admin/close-account/<int:user_id>/', views.close_account, name='close_account'),
     path('custom-admin/toggle-admin/<int:user_id>/', views.toggle_admin, name='toggle_admin'),
